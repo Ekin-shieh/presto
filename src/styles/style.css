@@ -96,6 +96,18 @@ button:active {
     background-color: hsl(239, 57%, 60%);
 }
 
+.cancelBtn {
+    background-color: red;
+}
+
+.cancelBtn:hover {
+    background-color: pink;
+}
+
+.cancelBtn:active {
+    background-color: rgba(246, 3, 88, 0.5);
+}
+
 .link {
     color: grey;
     font-size: 12px;

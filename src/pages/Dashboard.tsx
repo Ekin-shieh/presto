@@ -26,6 +26,8 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [newPresentationName, setNewPresentationName] = useState<string>('');
+  const [newPresentationDescription, setNewPresentationDescription] = useState<string>("");
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string>("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,6 +50,16 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
     } catch (error) {
       console.error(error);
       setError("加载幻灯片失败，请再次尝试");
+    }
+  };
+
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setThumbnailPreviewUrl(url);
+    } else {
+      setThumbnailPreviewUrl("");
     }
   };
 
@@ -88,26 +100,35 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
     }
   };
 
-  const handleCreatePresentation = () => {
-    setShowModal(true);
-  };
-
   const handleModalSubmit = () => {
     if (newPresentationName.trim()) {
       const newPresentation: Presentation = {
         id: Date.now(),
         name: newPresentationName,
-        description: 'Default description',
-        slides: [{ id: 1, content: [], background: { type: 'color', value: '#FFFFFF' } }],
-        thumbnail: '',
+        description: newPresentationDescription.trim(),
+        slides: [],
+        thumbnail: thumbnailPreviewUrl || "",
       };
+
       const updatedPresentations = [...presentations, newPresentation];
       setPresentations(updatedPresentations);
       updateData(updatedPresentations);
+
       setShowModal(false);
-      setNewPresentationName('');
+      setNewPresentationName("");
+      setNewPresentationDescription("");
+      setThumbnailPreviewUrl("");
+    } else {
+      setError("幻灯片名称不得为空");
     }
   };
+
+  const cancelAdd = () => {
+    setShowModal(false);
+    setNewPresentationName("");
+    setNewPresentationDescription("");
+    setThumbnailPreviewUrl("");
+  }
 
   const handleCardClick = (id: number) => {
     navigate(`/presentation/${id}`);
@@ -116,9 +137,9 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
   return (
     <div className={`container ${styles.container}`}>
       <div className={styles.headerback}>
-          <h2>Welcome to the dashboard!</h2>
-          <Link to="#" onClick={handleLogout} className="link">退出登录</Link>
-          <button onClick={handleCreatePresentation}>新建幻灯片</button>
+          <h2>您已到达主页！</h2>
+          <Link to="#" onClick={handleLogout} className={`link ${styles.link}`}>退出登录</Link>
+          <button onClick={() => setShowModal(true)}>新建幻灯片</button>
       </div>
       <div className={styles.presentationsGrid}>
           {presentations.map((presentation) => (
@@ -131,24 +152,51 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
               }}
           >
             <div className={styles.presentationInfo}>
-              <p>{presentation.name} Slides: {presentation.slides.length}</p>
-              {presentation.description && <p>{presentation.description}</p>}
+              <div className={styles.presentationTitle}>{presentation.name}</div>
+              <div>幻灯片数量：{presentation.slides.length}</div>
+              <p>{presentation.description?.trim() ? presentation.description : "无特定描述"}</p>
             </div>
           </div>
           ))}
       </div>
       {showModal && (
-        <div className='overlay' onClick={() => setShowModal(false)}>
-          <div className={styles.addform}>
-            <div>新建幻灯片文件</div>
+        <div className="overlay" onClick={() => setShowModal(false)}>
+          <div className={styles.addform} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.presentationTitle}>新建幻灯片文件</div>
+
+            <label>输入名称：</label>
             <input
-                type="text"
-                value={newPresentationName}
-                onChange={(e) => setNewPresentationName(e.target.value)}
-                placeholder="输入幻灯片名称"
+              type="text"
+              value={newPresentationName}
+              onChange={(e) => setNewPresentationName(e.target.value)}
+              placeholder="输入幻灯片名称"
             />
-            <button onClick={handleModalSubmit}>确认</button>
-            <button onClick={() => setShowModal(false)}>取消</button>
+            
+            <label>输入描述：</label>
+              <textarea
+                value={newPresentationDescription}
+                onChange={(e) => setNewPresentationDescription(e.target.value)}
+                placeholder="输入描述"
+                rows={4}
+              />
+
+            <label>选择封面:</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleThumbnailChange}
+              />
+
+            {thumbnailPreviewUrl && (
+              <div className={styles.thumbPreview}>
+                <img src={thumbnailPreviewUrl} alt="封面预览" />
+              </div>
+            )}
+
+            <div className={styles.buttons}>
+              <button onClick={handleModalSubmit}>确认</button>
+              <button className='cancelBtn' onClick={cancelAdd}>取消</button>
+            </div>
           </div>
         </div>
       )}
