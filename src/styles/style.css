@@ -1,0 +1,155 @@
+@font-face {
+    font-family: 'Inter';
+    src: url('../fonts/static/Inter-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Inter';
+    src: url('../fonts/static/Inter-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Inter';
+    src: url('../fonts/static/Inter-ExtraBold.ttf') format('truetype');
+    font-weight: 800;
+    font-style: normal;
+}
+
+body {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container {
+    min-width: 1440px;
+    width: 100vw;
+    min-height: 600px;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    position: relative;
+}
+
+.loginside {
+    height: 100%;
+    width: 400px;
+    background: linear-gradient(135deg, hsl(238, 40%, 52%), white);
+    background-size: 400% 400%;
+    animation: gradientAnimation 4s ease infinite;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.loginsheet {
+    height: 100%;
+    width: calc(100% - 400px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+@keyframes gradientAnimation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+input {
+    padding: 10px;
+    border-radius: 5px;
+    outline: none;
+    border: hsl(223, 19%, 93%) 1px solid;
+    resize: none;
+}
+
+input:focus {
+    border-color: hsl(238, 40%, 52%);
+}
+
+input::placeholder {
+    font-family: inherit;
+}
+
+button {
+    background-color: hsl(238, 40%, 52%);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-weight: 500;
+    font-family: inherit;
+}
+
+button:hover {
+    background-color: hsl(239, 57%, 85%);
+}
+
+button:active {
+    background-color: hsl(239, 57%, 60%);
+}
+
+.link {
+    color: grey;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.link:focus {
+    color: black;
+    outline: none;
+}
+
+.link:active {
+    color: gray;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.error-message {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    min-width: 200px;
+    max-width: 400px;
+    min-height: 20px;
+    max-height: 40px;
+    margin-top: 20px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+#show1 {
+    left: 150px;
+    top: 50px;
+}
+
+#show2 {
+    left: 350px;
+    top: 280px;
+}
+
+#show3 {
+    left: 250px;
+    top: 510px
+}

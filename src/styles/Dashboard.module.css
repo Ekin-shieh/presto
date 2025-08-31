@@ -1,0 +1,54 @@
+.container {
+    flex-direction: column;
+}
+
+.headerback {
+    background-image: url(../assets/bg-light.jpg);
+    width: 100%;
+    height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.5);
+    background-blend-mode: lighten;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center center;
+}
+
+.addform {
+    background-color: white;
+    border-radius: 8px;
+    padding: 50px;
+    margin: 50px 0;
+}
+
+.presentationsGrid {
+    width: calc(100% - 32px);
+    height: calc(100% - 150px);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-rows: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.presentationCard {
+    width: 320px;
+    height: 180px;
+    background: gray center/cover no-repeat;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    position: relative;
+}
+
+.presentationInfo {
+    display: flex;
+    background: rgba(0, 0, 0, 0.3);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+}
