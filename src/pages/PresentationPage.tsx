@@ -336,6 +336,21 @@ const PresentationPage: React.FC = () => {
         setShowBgModal(true);
     };
 
+    const handleBgImageChange = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+        targetWidth = 800,
+        targetHeight = 450
+        ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            const compressed = await compressToThumbnail(file, targetWidth, targetHeight);
+            setTempBgValue(compressed);
+        } catch (err) {
+            console.error("压缩背景图失败:", err);
+        }
+    };
+
     const changeBg = () => {
         if (!presentation) return;
         const updatedSlides = [...presentation.slides];
@@ -358,25 +373,27 @@ const PresentationPage: React.FC = () => {
     return (
     <div className='container'>
         <div className={styles.aside}>
-            {sortedSlides.length > 0 ? (
-                sortedSlides.map((s, idx) => (
-                <button
-                    key={s.id}
-                    onClick={() => gotoIndex(idx)}
-                    className={styles.slides}
-                    title={`转到第 ${idx + 1} 张`}
-                    style={{
-                    border: idx === currentIndex ? "2px solid #4f46e5" : "1px solid #ddd"
-                    }}
-                >
-                    <span style={{ color: idx === currentIndex ? "#4f46e5" : "#666" }}>
-                    幻灯片{idx + 1}
-                    </span>
-                </button>
-                ))
-            ) : (
-                <div className="gray">暂无幻灯片</div>
-            )}
+            <div className={styles.slideList}>
+                {sortedSlides.length > 0 ? (
+                    sortedSlides.map((s, idx) => (
+                    <button
+                        key={s.id}
+                        onClick={() => gotoIndex(idx)}
+                        className={styles.slides}
+                        title={`转到第 ${idx + 1} 张`}
+                        style={{
+                        border: idx === currentIndex ? "2px solid #4f46e5" : "1px solid #ddd"
+                        }}
+                    >
+                        <span style={{ color: idx === currentIndex ? "#4f46e5" : "#666" }}>
+                        幻灯片{idx + 1}
+                        </span>
+                    </button>
+                    ))
+                ) : (
+                    <div className="gray">暂无幻灯片</div>
+                )}
+            </div>
             <div className={styles.asideTitle}>
                 <div>
                 {sortedSlides.length > 0
@@ -403,6 +420,7 @@ const PresentationPage: React.FC = () => {
                         <div className={styles.submenu}>
                             <div>文本内容</div>
                             <div>插入图片</div>
+                            <div>添加视频</div>
                         </div>
                     </div>
                     <div className={styles.menuItem}>删除
@@ -527,20 +545,7 @@ const PresentationPage: React.FC = () => {
             )}
             {tempBgType === "image" && (
                 <>
-                <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    try {
-                        const compressed = await compressToThumbnail(file, 800, 450);
-                        setTempBgValue(compressed);
-                    } catch (err) {
-                        console.error("压缩图片失败", err);
-                    }
-                    }}
-                />
+                <input type="file" accept="image/*" onChange={(e) => handleBgImageChange(e)}/>
                 {isBase64Image(tempBgValue) && tempBgValue && (
                     <div className="thumbPreview">
                     <img src={tempBgValue} alt="背景预览" />
