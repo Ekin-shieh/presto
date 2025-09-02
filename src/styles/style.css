@@ -268,3 +268,17 @@ button:active {
     height: 40px;
     border: 1px solid #ccc;
 }
+
+.text-element.selected {
+  border: 1px dashed gray;
+}
+
+.text-element.selected::before,
+.text-element.selected::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: gray;
+  border-radius: 50%;
+  position: absolute;
+}

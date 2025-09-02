@@ -3,39 +3,17 @@ import { useNavigate, useParams } from "react-router-dom";
 import { HexColorPicker } from "react-colorful";
 import '../styles/style.css';
 import styles from '../styles/PresentationPage.module.css';
-
-import {
-  DndContext,
-  closestCenter,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { DndContext, closestCenter } from "@dnd-kit/core";
+import {  SortableContext,  useSortable,  verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { DragEndEvent } from "@dnd-kit/core";
 
-function SortableSlideItem({
-    slide,
-    idx,
-    currentIndex,
-    gotoIndex,
+function SortableSlideItem({ slide, idx, currentIndex, gotoIndex,
     }: {
-    slide: Slide;
-    idx: number;
-    currentIndex: number;
-    gotoIndex: (i: number) => void;
+        slide: Slide; idx: number; currentIndex: number;
+        gotoIndex: (i: number) => void;
     }) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({id: slide.id});
-
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({id: slide.id});
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
@@ -45,7 +23,6 @@ function SortableSlideItem({
         justifyContent: "space-between",
         alignItems: "center",
     };
-
     return (
         <button
         ref={setNodeRef}
@@ -84,7 +61,8 @@ type SlideElement =
         text: string;
         fontSize: number;
         color: string;
-        fontFamily: string;
+        fontFamily: "Noto Sans SC" | "Noto Serif SC" | "LXGW WenKai";
+        fontWeight: "regular" | "bold";
     };
     layer: number;
     }
@@ -245,7 +223,6 @@ const PresentationPage: React.FC = () => {
 
     const addSlide = async () => {
         if (!presentation) return;
-
         const newSlide: Slide = {
             id: presentation.slides.length + 1,
             index: presentation.slides.length,
@@ -255,12 +232,10 @@ const PresentationPage: React.FC = () => {
             },
             content: []
         };
-
         const updated: Presentation = {
             ...presentation,
             slides: [...presentation.slides, newSlide]
         };
-
         setPresentation(updated);
         setCurrentIndex(updated.slides.length - 1);
         setDirty(true);
@@ -268,22 +243,16 @@ const PresentationPage: React.FC = () => {
 
     const deleteCurrentSlide = () => {
         if (!presentation || sortedSlides.length === 0) return;
-
         const updatedSlides = sortedSlides.filter((_, idx) => idx !== currentIndex);
-
-        const newIndex =
-            currentIndex > 0 ? currentIndex - 1 : 0;
-
+        const newIndex = currentIndex > 0 ? currentIndex - 1 : 0;
         const reindexedSlides = updatedSlides.map((s, idx) => ({
             ...s,
             index: idx,
         }));
-
         const updated: Presentation = {
             ...presentation,
             slides: reindexedSlides,
         };
-
         setPresentation(updated);
         setCurrentIndex(Math.min(newIndex, reindexedSlides.length - 1));
         setDirty(true);
@@ -312,11 +281,11 @@ const PresentationPage: React.FC = () => {
         const onKey = (e: KeyboardEvent) => {
             if (sortedSlides.length === 0) return;
             if (e.key === "ArrowLeft") {
-            e.preventDefault();
-            gotoIndex(currentIndex - 1);
+                e.preventDefault();
+                gotoIndex(currentIndex - 1);
             } else if (e.key === "ArrowRight") {
-            e.preventDefault();
-            gotoIndex(currentIndex + 1);
+                e.preventDefault();
+                gotoIndex(currentIndex + 1);
             }
         };
         window.addEventListener("keydown", onKey);
@@ -349,16 +318,13 @@ const PresentationPage: React.FC = () => {
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.onload = () => {
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return reject("Canvas context not found");
-
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-
-            ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-            resolve(canvas.toDataURL("image/jpeg", 0.8));
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return reject("Canvas context not found");
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+                resolve(canvas.toDataURL("image/jpeg", 0.8));
             };
             img.onerror = reject;
             img.src = URL.createObjectURL(file);
@@ -368,7 +334,6 @@ const PresentationPage: React.FC = () => {
     const handleTempThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         try {
             const compressedBase64 = await compressToThumbnail(file, 160, 90);
             setTempThumbnail(compressedBase64);
@@ -394,7 +359,6 @@ const PresentationPage: React.FC = () => {
         if (!presentation) return;
         const ok = window.confirm("确定要删除这个演示文稿吗？");
         if (!ok) return;
-
         const data = await fetchStore();
         if (!data) return;
         const updated = data.store.presentations.filter(p => p.id !== presIdNum);
@@ -405,20 +369,17 @@ const PresentationPage: React.FC = () => {
     const openBgModal = () => {
         if (!presentation) return;
         const currentBg = sortedSlides[currentIndex].background;
-
         if (currentBg.type === "gradient") {
             setTempBgType("gradient");
-            const match = currentBg.value.match(
-            /^linear-gradient\(([^,]+),\s*([^,]+),\s*([^)]+)\)$/
-            );
+            const match = currentBg.value.match(/^linear-gradient\(([^,]+),\s*([^,]+),\s*([^)]+)\)$/);
             if (match) {
-            setGradientDirection(match[1].trim());
-            setGradientColor1(match[2].trim());
-            setGradientColor2(match[3].trim());
+                setGradientDirection(match[1].trim());
+                setGradientColor1(match[2].trim());
+                setGradientColor2(match[3].trim());
             } else {
-            setGradientDirection("");
-            setGradientColor1("#ff0000");
-            setGradientColor2("#0000ff");
+                setGradientDirection("");
+                setGradientColor1("#ff0000");
+                setGradientColor2("#0000ff");
             }
         } else {
             setTempBgType(currentBg.type as "color" | "image");
@@ -434,16 +395,12 @@ const PresentationPage: React.FC = () => {
     const dragSlide = (event: DragEndEvent) => {
         const {active, over} = event;
         if (!over || active.id === over.id) return;
-
         const oldIndex = sortedSlides.findIndex((s) => s.id === active.id);
         const newIndex = sortedSlides.findIndex((s) => s.id === over.id);
-
         const reordered = Array.from(sortedSlides);
         const [moved] = reordered.splice(oldIndex, 1);
         reordered.splice(newIndex, 0, moved);
-
         const reindexed = reordered.map((s, idx) => ({ ...s, index: idx }));
-
         const updated = { ...presentation!, slides: reindexed };
         setPresentation(updated);
         setCurrentIndex(newIndex);
@@ -476,11 +433,9 @@ const PresentationPage: React.FC = () => {
         }
         const updatedSlides = [...presentation.slides];
         let value = tempBgValue;
-
         if (tempBgType === "gradient") {
             value = `linear-gradient(${gradientDirection}, ${gradientColor1}, ${gradientColor2})`;
         }
-
         updatedSlides[currentIndex] = {
             ...updatedSlides[currentIndex],
             background: { type: tempBgType, value },
@@ -560,6 +515,7 @@ const PresentationPage: React.FC = () => {
                     <div className={styles.menuItem}>保存
                         <div className={styles.submenu}>
                             <div onClick={handleSave}>保存修改</div>
+                            <div>预览文件</div>
                             <div>导出PDF</div>
                         </div>
                     </div>
@@ -590,13 +546,7 @@ const PresentationPage: React.FC = () => {
                     {/* 渲染幻灯片内容 */}
                     </div>
                 ) : (
-                    <button
-                    onClick={addSlide}
-                    className={styles.addFirstSlide}
-                    title="点击添加第一张幻灯片"
-                    >
-                    点击添加第一张幻灯片
-                    </button>
+                    <button onClick={addSlide} className={styles.addFirstSlide} title="点击添加第一张幻灯片">点击添加第一张幻灯片</button>
                 )}
             </main>
         </div>
@@ -605,41 +555,20 @@ const PresentationPage: React.FC = () => {
         <div className="overlay" onClick={() => setShowInfoModal(false)}>
             <div className='addform' onClick={(e) => e.stopPropagation()}>
                 <div className='presentationTitle'>编辑文件信息</div>
-
                 <label>修改名称：</label>
-                <input
-                    type="text"
-                    value={tempName}
-                    onChange={(e) => setTempName(e.target.value)}
-                    placeholder="输入幻灯片名称"
-                />
-
+                <input type="text" value={tempName} onChange={(e) => setTempName(e.target.value)} placeholder="输入幻灯片名称" />
                 <label>修改描述：</label>
-                <textarea
-                    value={tempDescription}
-                    onChange={(e) => setTempDescription(e.target.value)}
-                    placeholder="输入描述"
-                    rows={4}
-                />
-
+                <textarea value={tempDescription} onChange={(e) => setTempDescription(e.target.value)} placeholder="输入描述" rows={4} />
                 <label>修改封面:</label>
-                <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleTempThumbnailChange}
-                />
-
+                <input type="file" accept="image/*" onChange={handleTempThumbnailChange} />
                 {tempThumbnail && (
                     <div className='thumbPreview'>
                     <img src={tempThumbnail} alt="封面预览" />
                     </div>
                 )}
-
                 <div className='buttons'>
                     <button onClick={handleInfoSave}>保存</button>
-                    <button className="cancelBtn" onClick={() => setShowInfoModal(false)}>
-                    取消
-                    </button>
+                    <button className="cancelBtn" onClick={() => setShowInfoModal(false)}>取消</button>
                 </div>
             </div>
         </div>
