@@ -69,6 +69,12 @@ function SortableSlideItem({
     );
 }
 
+function isValidGradientDirection(value: string): boolean {
+    const angleRegex = /^\d+deg$/;
+    const keywordRegex = /^to (left|right|top|bottom)( (left|right|top|bottom))?$/;
+    return angleRegex.test(value) || keywordRegex.test(value);
+}
+
 type SlideElement =
 | {
     type: "text";
@@ -118,7 +124,7 @@ type Slide = {
     id: number;
     index: number;
     background: {
-        type: "color" | "image";
+        type: "color" | "image" | "gradient";
         value: string;
     };
     content: SlideElement[];
@@ -152,8 +158,11 @@ const PresentationPage: React.FC = () => {
     const [tempDescription, setTempDescription] = useState("");
     const [tempThumbnail, setTempThumbnail] = useState<string | null>(null);
     const [showBgModal, setShowBgModal] = useState(false);
-    const [tempBgType, setTempBgType] = useState<"color" | "image">("color");
+    const [tempBgType, setTempBgType] = useState<"color" | "image" | "gradient">("color");
     const [tempBgValue, setTempBgValue] = useState<string>("#FFFFFF");
+    const [gradientDirection, setGradientDirection] = useState<string>("");
+    const [gradientColor1, setGradientColor1] = useState<string>("#ff0000");
+    const [gradientColor2, setGradientColor2] = useState<string>("#0000ff");
 
     const fetchStore = useCallback(async (): Promise<StoreResponse | null> => {
         try {
@@ -396,8 +405,29 @@ const PresentationPage: React.FC = () => {
     const openBgModal = () => {
         if (!presentation) return;
         const currentBg = sortedSlides[currentIndex].background;
-        setTempBgType(currentBg.type as "color" | "image");
-        setTempBgValue(currentBg.value);
+
+        if (currentBg.type === "gradient") {
+            setTempBgType("gradient");
+            const match = currentBg.value.match(
+            /^linear-gradient\(([^,]+),\s*([^,]+),\s*([^)]+)\)$/
+            );
+            if (match) {
+            setGradientDirection(match[1].trim());
+            setGradientColor1(match[2].trim());
+            setGradientColor2(match[3].trim());
+            } else {
+            setGradientDirection("");
+            setGradientColor1("#ff0000");
+            setGradientColor2("#0000ff");
+            }
+        } else {
+            setTempBgType(currentBg.type as "color" | "image");
+            setTempBgValue(currentBg.value);
+            setGradientDirection("");
+            setGradientColor1("#ff0000");
+            setGradientColor2("#0000ff");
+        }
+
         setShowBgModal(true);
     };
 
@@ -437,15 +467,28 @@ const PresentationPage: React.FC = () => {
 
     const changeBg = () => {
         if (!presentation) return;
+        if (tempBgType === "gradient") {
+            if (!isValidGradientDirection(gradientDirection)) {
+            alert("错误：请输入合法的渐变方向，例如 '90deg' 或 'to right'");
+            setGradientDirection("");
+            return;
+            }
+        }
         const updatedSlides = [...presentation.slides];
+        let value = tempBgValue;
+
+        if (tempBgType === "gradient") {
+            value = `linear-gradient(${gradientDirection}, ${gradientColor1}, ${gradientColor2})`;
+        }
+
         updatedSlides[currentIndex] = {
-        ...updatedSlides[currentIndex],
-        background: { type: tempBgType, value: tempBgValue },
+            ...updatedSlides[currentIndex],
+            background: { type: tempBgType, value },
         };
         setPresentation({ ...presentation, slides: updatedSlides });
         setDirty(true);
         setShowBgModal(false);
-    }
+    };
 
     const isBase64Image = (val: string) => {
         return typeof val === "string" && val.startsWith("data:image/");
@@ -539,7 +582,9 @@ const PresentationPage: React.FC = () => {
                     style={
                         sortedSlides[currentIndex].background.type === "color"
                         ? { backgroundColor: sortedSlides[currentIndex].background.value }
-                        : { backgroundImage: `url(${sortedSlides[currentIndex].background.value})` }
+                        : sortedSlides[currentIndex].background.type === "image"
+                        ? { backgroundImage: `url(${sortedSlides[currentIndex].background.value})` }
+                        : { backgroundImage: sortedSlides[currentIndex].background.value }
                     }
                     >
                     {/* 渲染幻灯片内容 */}
@@ -605,20 +650,13 @@ const PresentationPage: React.FC = () => {
             <div className="presentationTitle">编辑背景</div>
             <div className="radioGroup">
                 <label>
-                <input
-                    type="radio"
-                    checked={tempBgType === "color"}
-                    onChange={() => setTempBgType("color")}
-                />
-                颜色
+                    <input type="radio" checked={tempBgType === "color"} onChange={() => setTempBgType("color")}/>颜色
                 </label>
                 <label>
-                <input
-                    type="radio"
-                    checked={tempBgType === "image"}
-                    onChange={() => setTempBgType("image")}
-                />
-                图片
+                    <input type="radio" checked={tempBgType === "image"} onChange={() => setTempBgType("image")}/>图片
+                </label>
+                <label>
+                    <input type="radio" checked={tempBgType === "gradient"} onChange={() => setTempBgType("gradient")}/>渐变
                 </label>
             </div>
             {tempBgType === "color" && (
@@ -637,6 +675,23 @@ const PresentationPage: React.FC = () => {
                     </div>
                 )}
                 </>
+            )}
+            {tempBgType === "gradient" && (
+            <>
+                <label>方向（角度）：
+                    <input type="text" value={gradientDirection} onChange={(e) => setGradientDirection(e.target.value)} placeholder="例如：90deg" style={{ width: "100px", marginLeft: "8px" }}/>
+                </label>
+                <div>当前渐变效果</div>
+                <div className="colorBox" style={{ background: `linear-gradient(${gradientDirection}, ${gradientColor1}, ${gradientColor2})` }} />
+                <div className={styles.gradientBox}>
+                    <label>颜色1
+                        <HexColorPicker color={gradientColor1} onChange={setGradientColor1} style={{ width: "150px", height: "150px" }} />
+                    </label>
+                    <label>颜色2
+                        <HexColorPicker color={gradientColor2} onChange={setGradientColor2} style={{ width: "150px", height: "150px" }} />
+                    </label>
+                </div>
+            </>
             )}
             <div className="buttons">
                 <button onClick={changeBg}>保存</button>

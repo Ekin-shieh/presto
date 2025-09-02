@@ -168,3 +168,8 @@
   transform: translateY(0);
   pointer-events: auto;
 }
+
+.gradientBox {
+    display: flex;
+    justify-content: space-between;
+}
