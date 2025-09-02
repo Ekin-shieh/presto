@@ -4,6 +4,71 @@ import { HexColorPicker } from "react-colorful";
 import '../styles/style.css';
 import styles from '../styles/PresentationPage.module.css';
 
+import {
+  DndContext,
+  closestCenter,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import type { DragEndEvent } from "@dnd-kit/core";
+
+function SortableSlideItem({
+    slide,
+    idx,
+    currentIndex,
+    gotoIndex,
+    }: {
+    slide: Slide;
+    idx: number;
+    currentIndex: number;
+    gotoIndex: (i: number) => void;
+    }) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({id: slide.id});
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        border: idx === currentIndex ? "2px solid #4f46e5" : "1px solid #ddd",
+        background: isDragging ? "#f0f0f0" : "white",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+    };
+
+    return (
+        <button
+        ref={setNodeRef}
+        {...attributes}
+        onClick={() => gotoIndex(idx)}
+        className={styles.slides}
+        style={style}
+        title={`转到第 ${idx + 1} 张`}
+        >
+        <span style={{ color: idx === currentIndex ? "#4f46e5" : "#666" }}>
+            幻灯片{idx + 1}
+        </span>
+        <span
+            {...listeners}
+            style={{ cursor: "grab", padding: "0 6px", color: "#aaa" }}
+            title="拖拽调整顺序"
+        >
+            ≡
+        </span>
+        </button>
+    );
+}
+
 type SlideElement =
 | {
     type: "text";
@@ -336,6 +401,25 @@ const PresentationPage: React.FC = () => {
         setShowBgModal(true);
     };
 
+    const dragSlide = (event: DragEndEvent) => {
+        const {active, over} = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = sortedSlides.findIndex((s) => s.id === active.id);
+        const newIndex = sortedSlides.findIndex((s) => s.id === over.id);
+
+        const reordered = Array.from(sortedSlides);
+        const [moved] = reordered.splice(oldIndex, 1);
+        reordered.splice(newIndex, 0, moved);
+
+        const reindexed = reordered.map((s, idx) => ({ ...s, index: idx }));
+
+        const updated = { ...presentation!, slides: reindexed };
+        setPresentation(updated);
+        setCurrentIndex(newIndex);
+        setDirty(true);
+    }
+
     const handleBgImageChange = async (
         e: React.ChangeEvent<HTMLInputElement>,
         targetWidth = 800,
@@ -375,23 +459,24 @@ const PresentationPage: React.FC = () => {
         <div className={styles.aside}>
             <div className={styles.slideList}>
                 {sortedSlides.length > 0 ? (
-                    sortedSlides.map((s, idx) => (
-                    <button
-                        key={s.id}
-                        onClick={() => gotoIndex(idx)}
-                        className={styles.slides}
-                        title={`转到第 ${idx + 1} 张`}
-                        style={{
-                        border: idx === currentIndex ? "2px solid #4f46e5" : "1px solid #ddd"
-                        }}
+                <DndContext collisionDetection={closestCenter} onDragEnd={dragSlide}>
+                    <SortableContext
+                    items={sortedSlides.map((s) => s.id)}
+                    strategy={verticalListSortingStrategy}
                     >
-                        <span style={{ color: idx === currentIndex ? "#4f46e5" : "#666" }}>
-                        幻灯片{idx + 1}
-                        </span>
-                    </button>
-                    ))
+                    {sortedSlides.map((s, idx) => (
+                        <SortableSlideItem
+                        key={s.id}
+                        slide={s}
+                        idx={idx}
+                        currentIndex={currentIndex}
+                        gotoIndex={gotoIndex}
+                        />
+                    ))}
+                    </SortableContext>
+                </DndContext>
                 ) : (
-                    <div className="gray">暂无幻灯片</div>
+                <div className="gray">暂无幻灯片</div>
                 )}
             </div>
             <div className={styles.asideTitle}>
