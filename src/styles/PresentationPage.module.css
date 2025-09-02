@@ -1,0 +1,157 @@
+.aside {
+    height: 100%;
+    width: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-right: 1px solid #eee;
+    grid-auto-rows: min-content;
+    padding: 10px;
+    box-sizing: border-box;
+    gap: 10px;
+    background: #fafafa;
+    position: relative;
+}
+
+.asideTitle {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    color: #999;
+    position: absolute;
+    bottom: 18px;
+    left: 12px;
+    height: 36px;
+
+    button {
+        width: 160px;
+    }
+}
+
+.slides {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: white;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+}
+
+.addFirstSlide {
+    padding: 10px 14px;
+    border: 1px dashed #bbb;
+    cursor: pointer;
+    background: transparent;
+    color: #bbb;
+    width: 320px;
+    height: 180px;
+    border-radius: 0;
+}
+
+.addFirstSlide:hover {
+    background-color: transparent;
+}
+
+.addFirstSlide:active {
+    background-color: transparent;
+}
+
+.slideBox {
+    height: 100%;
+    width: calc(100% - 480px);
+    border-right: 1px solid #eee;
+}
+
+.slideHeader {
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-weight: 800;
+    font-size: 25px;
+    height: 80px;
+    box-sizing: border-box;
+}
+
+.menu {
+    display: flex;
+    align-items: center;
+    gap: 50px;
+    height: 80px;
+    font-weight: 400;
+    font-size: 15px;
+    margin-right: 9px;
+}
+
+.slideMain {
+    padding: 16px;
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    background: #f7f7f7;
+    height: calc(100% - 80px);
+}
+
+.slideColor,
+.slideImage {
+    width: 800px;
+    height: 450px;
+    border: 1px solid #e5e5e5;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+}
+
+.elementBox {
+    height: 100%;
+    width: 300px;
+}
+
+.submenu {
+  position: absolute;
+  top: 80px;
+  left: -25px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.submenu div {
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+
+.submenu div:hover {
+  background: #f3f3f3;
+}
+
+.menuItem {
+    display: flex;
+    align-items: center;
+    height: 78px;
+    cursor: pointer;
+    position: relative;
+}
+
+.menuItem:hover {
+    color: hsl(239, 57%, 60%);
+    border-bottom: hsl(239, 57%, 60%) 2px solid;
+}
+
+.menuItem:hover .submenu {
+  max-height: 500px;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}

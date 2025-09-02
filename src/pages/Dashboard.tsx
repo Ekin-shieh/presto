@@ -54,13 +54,36 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
   };
 
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setThumbnailPreviewUrl(url);
-    } else {
+    const file = e.target.files?.[0];
+    if (!file) {
       setThumbnailPreviewUrl("");
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        const targetWidth = 160;
+        const targetHeight = 90;
+
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        ctx?.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+        const base64 = canvas.toDataURL("image/jpeg", 0.8);
+
+        setThumbnailPreviewUrl(base64);
+      };
+    };
+
+    reader.readAsDataURL(file);
   };
 
   const updateData = async (updatedPresentations: Presentation[]) => {
@@ -161,8 +184,8 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
       </div>
       {showModal && (
         <div className="overlay" onClick={() => setShowModal(false)}>
-          <div className={styles.addform} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.presentationTitle}>新建幻灯片文件</div>
+          <div className='addform' onClick={(e) => e.stopPropagation()}>
+            <div className='presentationTitle'>新建幻灯片文件</div>
 
             <label>输入名称：</label>
             <input
@@ -188,12 +211,12 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
               />
 
             {thumbnailPreviewUrl && (
-              <div className={styles.thumbPreview}>
+              <div className='thumbPreview'>
                 <img src={thumbnailPreviewUrl} alt="封面预览" />
               </div>
             )}
 
-            <div className={styles.buttons}>
+            <div className='buttons'>
               <button onClick={handleModalSubmit}>确认</button>
               <button className='cancelBtn' onClick={cancelAdd}>取消</button>
             </div>

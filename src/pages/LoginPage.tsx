@@ -56,7 +56,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ setIsAuthenticated }) => {
           });
 
           toggle = !toggle;
-          const t2 = setTimeout(cycle, 4000); // 1s 渐变 + 3s 停留
+          const t2 = setTimeout(cycle, 4000);
           timers.push(t2);
         }, 1000);
 
@@ -141,10 +141,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ setIsAuthenticated }) => {
           <form onSubmit={handleRegister} className={styles.loginform}>
             <div className={styles.headline}>注 册</div>
             <div className='link' tabIndex={0} onClick={() => setShowLogin(true)}>已有账号？返回登录</div>
-            <input type="text" name="name" placeholder="输入你的昵称" value={newData.name} onChange={registerChange} required />
-            <input type="email" name="email" placeholder="输入你的邮箱" value={newData.email} onChange={registerChange} required />
-            <input type="password" name="password" placeholder="输入你的密码" value={newData.password} onChange={registerChange} required />
-            <input type="password" name="confirmPassword" placeholder="再次确认密码" value={newData.confirmPassword} onChange={registerChange} required />
+            <input type="text" name="name" placeholder="输入你的昵称" defaultValue={newData.name} onBlur={registerChange} required />
+            <input type="email" name="email" placeholder="输入你的邮箱" defaultValue={newData.email} onBlur={registerChange} required />
+            <input type="password" name="password" placeholder="输入你的密码" defaultValue={newData.password} onBlur={registerChange} required />
+            <input type="password" name="confirmPassword" placeholder="再次确认密码" defaultValue={newData.confirmPassword} onBlur={registerChange} required />
             <button type="submit">确 认</button>
           </form>
         )}
