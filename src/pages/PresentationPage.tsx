@@ -75,7 +75,9 @@ type SlideElement =
         fontSize: number;
         color: string;
         fontFamily: "Noto Sans SC" | "Noto Serif SC" | "LXGW WenKai";
-        fontWeight: "regular" | "bold";
+        fontWeight: "light" | "regular" | "bold"; 
+        fontStyle: "normal" | "italic";
+        textDecoration: "none" | "underline"; 
     };
     layer: number;
     }
@@ -159,7 +161,9 @@ const PresentationPage: React.FC = () => {
     const [textFontSize, setTextFontSize] = useState(16);
     const [textFont, setTextFont] = useState<"Noto Sans SC" | "Noto Serif SC" | "LXGW WenKai">("Noto Sans SC");
     const [textColor, setTextColor] = useState("#000000");
-    const [textWeight, setTextWeight] = useState<"regular" | "bold">("regular");
+    const [textWeight, setTextWeight] = useState<"light" | "regular" | "bold">("regular");
+    const [textStyle, setTextStyle] = useState<"normal" | "italic">("normal");
+    const [textDecoration, setTextDecoration] = useState<"none" | "underline">("none");
     const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
     const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
     const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
@@ -167,49 +171,59 @@ const PresentationPage: React.FC = () => {
     const [resizingIndex, setResizingIndex] = useState<number | null>(null);
     const [resizeDir, setResizeDir] = useState<string | null>(null);
     const [resizeStartSize, setResizeStartSize] = useState<{ width: number; height: number } | null>(null);
+    const [animateInfoModal, setAnimateInfoModal] = useState(false);
+    const [animateBgModal, setAnimateBgModal] = useState(false);
+    const [animateTextModal, setAnimateTextModal] = useState(false);
 
-    const fetchStore = useCallback(async (): Promise<StoreResponse | null> => {
+    const closeInfoModal = () => {
+        setAnimateInfoModal(false);
+        setTimeout(() => setShowInfoModal(false), 300);
+    };
+
+    const closeBgModal = () => {
+        setAnimateBgModal(false);
+        setTimeout(() => setShowBgModal(false), 300);
+    };
+
+    const openTextModal = () => {
+        setShowTextModal(true);
+        setAnimateTextModal(false);
+        requestAnimationFrame(() => setAnimateTextModal(true));
+    };
+
+    async function apiRequest<T>(
+        method: "GET" | "PUT",
+        body?: any
+        ): Promise<T | null> {
         try {
             const token = localStorage.getItem("token");
             const res = await fetch("http://localhost:5005/store", {
-                method: "GET",
-                headers: {
+            method,
+            headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token ?? ""}`,
-                },
+            },
+            body: body ? JSON.stringify(body) : undefined,
             });
             if (res.status === 401) {
-                navigate("/");
-                return null;
+            navigate("/");
+            return null;
             }
-            if (!res.ok) throw new Error("Failed to fetch store");
-            return (await res.json()) as StoreResponse;
+            if (!res.ok) throw new Error(`Failed to ${method} store`);
+            return (await res.json()) as T;
         } catch (e) {
             console.error(e);
             return null;
         }
+    }
+
+    const fetchStore = useCallback(async (): Promise<StoreResponse | null> => {
+        return apiRequest<StoreResponse>("GET");
     }, [navigate]);
 
     const saveStore = useCallback(
         async (presentations: Presentation[]) => {
-            try {
-                const token = localStorage.getItem("token");
-                const res = await fetch("http://localhost:5005/store", {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token ?? ""}`,
-                },
-                body: JSON.stringify({ store: { presentations } }),
-                });
-                if (res.status === 401) {
-                    navigate("/");
-                    return;
-                }
-                if (!res.ok) throw new Error("Failed to save store");
-            } catch (e) {
-                console.error(e);
-            }
+            return apiRequest("PUT", { store: { presentations } });
         },
         [navigate]
     );
@@ -238,12 +252,12 @@ const PresentationPage: React.FC = () => {
 
     const persist = useCallback(
         async (updated: Presentation) => {
-        const data = await fetchStore();
-        if (!data) return;
-        const updatedPresentations = data.store.presentations.map((p) =>
+            const data = await fetchStore();
+            if (!data) return;
+            const updatedPresentations = data.store.presentations.map((p) =>
             p.id === updated.id ? updated : p
-        );
-        await saveStore(updatedPresentations);
+            );
+            await saveStore(updatedPresentations);
         },
         [fetchStore, saveStore]
     );
@@ -253,10 +267,7 @@ const PresentationPage: React.FC = () => {
         const newSlide: Slide = {
             id: presentation.slides.length + 1,
             index: presentation.slides.length,
-            background: {
-            type: "color",
-            value: "#FFFFFF"
-            },
+            background: { type: "color", value: "#FFFFFF"},
             content: []
         };
         const updated: Presentation = {
@@ -290,6 +301,16 @@ const PresentationPage: React.FC = () => {
         await persist(presentation);
         setDirty(false);
         alert("修改已保存");
+    };
+
+    const confirmBeforeExit = async (action: () => void) => {
+    if (dirty) {
+        const ok = window.confirm("您有未保存的更改，是否先保存");
+        if (ok) {
+        await handleSave();
+        }
+    }
+    action();
     };
 
     const sortedSlides = useMemo(() => {
@@ -341,33 +362,53 @@ const PresentationPage: React.FC = () => {
         setTempDescription(presentation.description || "");
         setTempThumbnail(presentation.thumbnail || null);
         setShowInfoModal(true);
+        setAnimateInfoModal(false);
+        requestAnimationFrame(() => setAnimateInfoModal(true));
     };
 
-    const compressToThumbnail = (file: File, targetWidth: number, targetHeight: number): Promise<string> => {
+    async function compressImage(
+        file: File,
+        targetWidth: number,
+        targetHeight: number,
+        quality: number = 0.8
+        ): Promise<string> {
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.onload = () => {
-                const canvas = document.createElement("canvas");
-                const ctx = canvas.getContext("2d");
-                if (!ctx) return reject("Canvas context not found");
-                canvas.width = targetWidth;
-                canvas.height = targetHeight;
-                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-                resolve(canvas.toDataURL("image/jpeg", 0.8));
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return reject("Canvas context not found");
+
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+            resolve(canvas.toDataURL("image/jpeg", quality));
             };
             img.onerror = reject;
             img.src = URL.createObjectURL(file);
         });
-    };
+        }
 
     const handleTempThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
         try {
-            const compressedBase64 = await compressToThumbnail(file, 160, 90);
+            const compressedBase64 = await compressImage(file, 160, 90);
             setTempThumbnail(compressedBase64);
         } catch (err) {
             console.error("压缩缩略图失败:", err);
+        }
+    };
+
+    const handleBgImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            const compressed = await compressImage(file, 800, 450);
+            setTempBgValue(compressed);
+        } catch (err) {
+            console.error("压缩背景图失败:", err);
         }
     };
 
@@ -417,7 +458,8 @@ const PresentationPage: React.FC = () => {
             setGradientColor1("#ff0000");
             setGradientColor2("#0000ff");
         }
-
+        setAnimateBgModal(false);
+        requestAnimationFrame(() => setAnimateBgModal(true));
         setShowBgModal(true);
     };
 
@@ -435,21 +477,6 @@ const PresentationPage: React.FC = () => {
         setCurrentIndex(newIndex);
         setDirty(true);
     }
-
-    const handleBgImageChange = async (
-        e: React.ChangeEvent<HTMLInputElement>,
-        targetWidth = 800,
-        targetHeight = 450
-        ) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        try {
-            const compressed = await compressToThumbnail(file, targetWidth, targetHeight);
-            setTempBgValue(compressed);
-        } catch (err) {
-            console.error("压缩背景图失败:", err);
-        }
-    };
 
     const changeBg = () => {
         if (!presentation) return;
@@ -486,13 +513,11 @@ const PresentationPage: React.FC = () => {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
-
         ctx.font = `${textWeight === "bold" ? "700" : "400"} ${textFontSize}px ${textFont}`;
         const metrics = ctx.measureText(textContent);
         const textWidth = metrics.width;
         const width = textWidth;
         const height = textFontSize * lineHeight;
-
         const newElement: SlideElement = {
             type: "text",
             size: { width, height },
@@ -503,16 +528,16 @@ const PresentationPage: React.FC = () => {
                 color: textColor,
                 fontFamily: textFont,
                 fontWeight: textWeight,
+                fontStyle: textStyle,
+                textDecoration: textDecoration,
             },
             layer: currentSlide.content.length + 1,
         };
-
         const updatedSlides = [...presentation.slides];
         updatedSlides[currentIndex] = {
             ...currentSlide,
             content: [...currentSlide.content, newElement],
         };
-
         setPresentation({ ...presentation, slides: updatedSlides });
         closeTextModal();
         setSelectedElementIndex(currentSlide.content.length);
@@ -526,6 +551,9 @@ const PresentationPage: React.FC = () => {
         setTextFont("Noto Sans SC");
         setTextColor("#000000");
         setTextWeight("regular");
+        setTextStyle("normal");
+        setTextDecoration("none");
+        setTimeout(() => setShowTextModal(false), 300);
     };
 
     const handleResizeStart = (e: React.MouseEvent, idx: number, dir: string) => {
@@ -533,7 +561,6 @@ const PresentationPage: React.FC = () => {
         setResizingIndex(idx);
         setResizeDir(dir);
         setDragStart({ x: e.clientX, y: e.clientY });
-
         const currentSlide = presentation!.slides[currentIndex];
         const el = currentSlide.content[idx];
         setElementStart({ x: el.position.x, y: el.position.y });
@@ -545,7 +572,6 @@ const PresentationPage: React.FC = () => {
         if (!presentation) return;
         setDraggingIndex(idx);
         setDragStart({ x: e.clientX, y: e.clientY });
-
         const currentSlide = presentation.slides[currentIndex];
         const el = currentSlide.content[idx];
         setElementStart({ x: el.position.x, y: el.position.y });
@@ -559,11 +585,9 @@ const PresentationPage: React.FC = () => {
         if (draggingIndex !== null && dragStart && elementStart) {
             const dx = e.clientX - dragStart.x;
             const dy = e.clientY - dragStart.y;
-
             const el = currentSlide.content[draggingIndex];
             const newX = elementStart.x + dx;
             const newY = elementStart.y + dy;
-
             const { x, y } = clampElementPosition(el, newX, newY, 800, 450);
             el.position = { x, y };
         }
@@ -571,13 +595,11 @@ const PresentationPage: React.FC = () => {
         if (resizingIndex !== null && dragStart && elementStart && resizeDir && resizeStartSize) {
             const dx = e.clientX - dragStart.x;
             const dy = e.clientY - dragStart.y;
-
             const el = currentSlide.content[resizingIndex];
             let newWidth = resizeStartSize.width;
             let newHeight = resizeStartSize.height;
             let newX = elementStart.x;
             let newY = elementStart.y;
-
             if (resizeDir.includes("right")) newWidth = Math.max(7, resizeStartSize.width + dx);
             if (resizeDir.includes("bottom")) newHeight = Math.max(7, resizeStartSize.height + dy);
             if (resizeDir.includes("left")) {
@@ -588,11 +610,9 @@ const PresentationPage: React.FC = () => {
                 newHeight = Math.max(7, resizeStartSize.height - dy);
                 newY = elementStart.y + dy;
             }
-
             el.size = { width: newWidth, height: newHeight };
             el.position = { x: newX, y: newY };
         }
-
         const updated: Presentation = {...presentation, slides: updatedSlides,};
         setPresentation(updated);
         setDirty(true);
@@ -669,7 +689,7 @@ const PresentationPage: React.FC = () => {
                     <div className={styles.menuItem}>添加
                         <div className={styles.submenu}>
                             <div onClick={addSlide}>新幻灯片</div>
-                            <div onClick={() => setShowTextModal(true)}>文本内容</div>
+                            <div onClick={openTextModal}>文本内容</div>
                             <div>插入图片</div>
                             <div>添加视频</div>
                             <div>新增代码</div>
@@ -690,8 +710,8 @@ const PresentationPage: React.FC = () => {
                     </div>
                     <div className={styles.menuItem}>退出
                         <div className={styles.submenu}>
-                            <div onClick={() => navigate('/dashboard')}>返回主页</div>
-                            <div onClick={handleLogout}>退出登录</div>
+                            <div onClick={() => confirmBeforeExit(() => navigate('/dashboard'))}>返回主页</div>
+                            <div onClick={() => confirmBeforeExit(handleLogout)}>退出登录</div>
                         </div>
                     </div>
                 </div>
@@ -730,7 +750,11 @@ const PresentationPage: React.FC = () => {
                             height: el.size.height,
                             fontSize: `${el.properties.fontSize}px`,
                             fontFamily: el.properties.fontFamily,
-                            fontWeight: el.properties.fontWeight === "bold" ? 700 : 400,
+                            fontWeight:
+                                el.properties.fontWeight === "bold" ? 700 :
+                                el.properties.fontWeight === "light" ? 300 : 400,
+                            fontStyle: el.properties.fontStyle,
+                            textDecoration: el.properties.textDecoration,
                             color: el.properties.color,
                             padding: "5px",
                             whiteSpace: "nowmal",
@@ -763,13 +787,13 @@ const PresentationPage: React.FC = () => {
         </div>
         <div className={styles.elementBox}></div>
         {showInfoModal && (
-        <div className="overlay" onClick={() => setShowInfoModal(false)}>
-            <div className='addform' onClick={(e) => e.stopPropagation()}>
+        <div className="overlay modal-overlay visible" onClick={closeInfoModal}>
+            <div className={`addform ${animateInfoModal ? "show" : "hide"}`} onClick={(e) => e.stopPropagation()}>
                 <div className='presentationTitle'>编辑文件信息</div>
                 <label>修改名称：</label>
                 <input type="text" value={tempName} onChange={(e) => setTempName(e.target.value)} placeholder="输入幻灯片名称" />
                 <label>修改描述：</label>
-                <textarea value={tempDescription} onChange={(e) => setTempDescription(e.target.value)} placeholder="输入描述" rows={4} />
+                <textarea value={tempDescription} onChange={(e) => setTempDescription(e.target.value)} placeholder="输入描述" rows={3} />
                 <label>修改封面:</label>
                 <input type="file" accept="image/*" onChange={handleTempThumbnailChange} />
                 {tempThumbnail && (
@@ -779,14 +803,14 @@ const PresentationPage: React.FC = () => {
                 )}
                 <div className='buttons'>
                     <button onClick={handleInfoSave}>保存</button>
-                    <button className="cancelBtn" onClick={() => setShowInfoModal(false)}>取消</button>
+                    <button className="cancelBtn" onClick={closeInfoModal}>取消</button>
                 </div>
             </div>
         </div>
         )}
         {showBgModal && (
-        <div className="overlay" onClick={() => setShowBgModal(false)}>
-            <div className="addform" onClick={(e) => e.stopPropagation()}>
+        <div className="overlay modal-overlay visible" onClick={closeBgModal}>
+            <div className={`addform ${animateBgModal ? "show" : "hide"}`} onClick={(e) => e.stopPropagation()}>
             <div className="presentationTitle">编辑背景</div>
             <div className="radioGroup">
                 <label>
@@ -835,42 +859,48 @@ const PresentationPage: React.FC = () => {
             )}
             <div className="buttons">
                 <button onClick={changeBg}>保存</button>
-                <button className="cancelBtn" onClick={() => setShowBgModal(false)}>取消</button>
+                <button className="cancelBtn" onClick={closeBgModal}>取消</button>
             </div>
             </div>
         </div>
         )}
         {showTextModal && (
-        <div className="overlay" onClick={closeTextModal}>
-            <div className="addform" onClick={(e) => e.stopPropagation()}>
+        <div className="overlay modal-overlay visible" onClick={closeTextModal}>
+            <div className={`addform ${animateTextModal ? "show" : "hide"}`} onClick={(e) => e.stopPropagation()}>
             <div className="presentationTitle">插入文本框</div>
-            <label>文字内容：</label>
-            <textarea
-                rows={3}
-                value={textContent}
-                onChange={(e) => setTextContent(e.target.value)}
-            />
-            <label>字体大小：</label>
-            <input
-                type="number"
-                value={textFontSize}
-                onChange={(e) => setTextFontSize(Number(e.target.value))}
-            />
-            <label>字体：</label>
+            <label>文字内容</label>
+            <textarea rows={3} value={textContent} onChange={(e) => setTextContent(e.target.value)}/>
+            <label>大小</label>
+            <input type="number" value={textFontSize} onChange={(e) => setTextFontSize(Number(e.target.value))} />
+            <label>字体</label>
             <select value={textFont} onChange={(e) => setTextFont(e.target.value as any)}>
                 <option value="Noto Sans SC">Noto Sans SC</option>
                 <option value="Noto Serif SC">Noto Serif SC</option>
                 <option value="LXGW WenKai">LXGW WenKai</option>
             </select>
-            <label>颜色：</label>
-            <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} />
-
-            <label>粗细：</label>
+            <label>颜色 
+                <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} />
+            </label>
+            <label>字重</label>
             <select value={textWeight} onChange={(e) => setTextWeight(e.target.value as any)}>
-                <option value="regular">常规</option>
-                <option value="bold">加粗</option>
+                <option value="light">Light</option>
+                <option value="regular">Regular</option>
+                <option value="bold">Bold</option>
             </select>
-
+            <label>
+                <input
+                    type="checkbox"
+                    checked={textStyle === "italic"}
+                    onChange={(e) => setTextStyle(e.target.checked ? "italic" : "normal")}
+                />斜体
+            </label>
+            <label>
+                <input
+                    type="checkbox"
+                    checked={textDecoration === "underline"}
+                    onChange={(e) => setTextDecoration(e.target.checked ? "underline" : "none")}
+                />下划线
+            </label>
             <div className="buttons">
                 <button onClick={handleAddTextElement}>确认</button>
                 <button className="cancelBtn" onClick={closeTextModal}>取消</button>

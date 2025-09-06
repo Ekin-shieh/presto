@@ -23,12 +23,15 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
   const [error, setError] = useState<string>('');
+  const [showError, setShowError] = useState(false);
   const [presentations, setPresentations] = useState<Presentation[]>([]);
   const [showModal, setShowModal] = useState<boolean>(false);
+  const [animateModal, setAnimateModal] = useState(false);
   const [newPresentationName, setNewPresentationName] = useState<string>('');
   const [newPresentationDescription, setNewPresentationDescription] = useState<string>("");
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string>("");
   const navigate = useNavigate();
+  const [animateError, setAnimateError] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -64,21 +67,15 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
     reader.onload = (event) => {
       const img = new Image();
       img.src = event.target?.result as string;
-
       img.onload = () => {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
-
         const targetWidth = 160;
         const targetHeight = 90;
-
         canvas.width = targetWidth;
         canvas.height = targetHeight;
-
         ctx?.drawImage(img, 0, 0, targetWidth, targetHeight);
-
         const base64 = canvas.toDataURL("image/jpeg", 0.8);
-
         setThumbnailPreviewUrl(base64);
       };
     };
@@ -147,7 +144,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
   };
 
   const cancelAdd = () => {
-    setShowModal(false);
+    closeModal();
     setNewPresentationName("");
     setNewPresentationDescription("");
     setThumbnailPreviewUrl("");
@@ -157,12 +154,42 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
     navigate(`/presentation/${id}`);
   };
 
+  useEffect(() => {
+    if (showModal) {
+      setAnimateModal(false);
+      requestAnimationFrame(() => setAnimateModal(true));
+    }
+  }, [showModal]);
+
+  useEffect(() => {
+    if (error) {
+      setShowError(true);
+      setAnimateError(false);
+      requestAnimationFrame(() => setAnimateError(true));
+    } else if (showError) {
+      setAnimateError(false);
+      const t = setTimeout(() => setShowError(false), 400);
+      return () => clearTimeout(t);
+    }
+  }, [error]);
+
+  const openModal = () => {
+    setShowModal(true);
+    setAnimateModal(false);
+    requestAnimationFrame(() => setAnimateModal(true));
+  };
+
+  const closeModal = () => {
+    setAnimateModal(false);
+    setTimeout(() => setShowModal(false), 300);
+  };
+
   return (
     <div className={`container ${styles.container}`}>
       <div className={styles.headerback}>
           <h2>您已到达主页！</h2>
           <Link to="#" onClick={handleLogout} className={`link ${styles.link}`}>退出登录</Link>
-          <button onClick={() => setShowModal(true)}>新建幻灯片</button>
+          <button onClick={openModal}>新建幻灯片</button>
       </div>
       <div className={styles.presentationsGrid}>
           {presentations.map((presentation) => (
@@ -183,10 +210,9 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
           ))}
       </div>
       {showModal && (
-        <div className="overlay" onClick={() => setShowModal(false)}>
-          <div className='addform' onClick={(e) => e.stopPropagation()}>
+        <div className="overlay modal-overlay visible" onClick={closeModal}>
+          <div className={`addform ${animateModal ? 'show' : 'hide'}`} onClick={(e) => e.stopPropagation()}>
             <div className='presentationTitle'>新建幻灯片文件</div>
-
             <label>输入名称：</label>
             <input
               type="text"
@@ -194,28 +220,20 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
               onChange={(e) => setNewPresentationName(e.target.value)}
               placeholder="输入幻灯片名称"
             />
-            
             <label>输入描述：</label>
-              <textarea
-                value={newPresentationDescription}
-                onChange={(e) => setNewPresentationDescription(e.target.value)}
-                placeholder="输入描述"
-                rows={4}
-              />
-
+            <textarea
+              value={newPresentationDescription}
+              onChange={(e) => setNewPresentationDescription(e.target.value)}
+              placeholder="输入描述"
+              rows={4}
+            />
             <label>选择封面:</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleThumbnailChange}
-              />
-
+            <input type="file" accept="image/*" onChange={handleThumbnailChange} />
             {thumbnailPreviewUrl && (
               <div className='thumbPreview'>
                 <img src={thumbnailPreviewUrl} alt="封面预览" />
               </div>
             )}
-
             <div className='buttons'>
               <button onClick={handleModalSubmit}>确认</button>
               <button className='cancelBtn' onClick={cancelAdd}>取消</button>
@@ -223,9 +241,11 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
           </div>
         </div>
       )}
-      {error && (
-        <div className='overlay' onClick={() => setError('')}>
-          <div className='error-message'>{error}</div>
+      {showError && (
+        <div className="overlay error-overlay visible" onClick={() => setError('')}>
+          <div className={`error-message ${animateError ? 'show' : 'hide'}`}>
+            {error}
+          </div>
         </div>
       )}
     </div>

@@ -18,6 +18,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ setIsAuthenticated }) => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [newData, setNewData] = useState({ email: '', password: '', confirmPassword: '', name: '' });
   const [error, setError] = useState('');
+  const [showError, setShowError] = useState(false);
+  const [animateIn, setAnimateIn] = useState(false);
   const [showLogin, setShowLogin] = useState(true);
   const [images, setImages] = useState([show1, show2, show3]);
   const [fade, setFade] = useState([false, false, false]);
@@ -125,6 +127,19 @@ const LoginPage: React.FC<LoginPageProps> = ({ setIsAuthenticated }) => {
     }
   };
 
+  useEffect(() => {
+    if (error) {
+      setShowError(true);
+      requestAnimationFrame(() => {
+        setAnimateIn(true);
+      });
+    } else {
+      setAnimateIn(false);
+      const t = setTimeout(() => setShowError(false), 400);
+      return () => clearTimeout(t);
+    }
+  }, [error]);
+
   return (
     <div className={`container ${styles.container}`}>
       <div className='loginside'></div>
@@ -148,11 +163,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ setIsAuthenticated }) => {
             <button type="submit">确 认</button>
           </form>
         )}
-        {error && (
-          <div className='overlay' onClick={() => setError('')}>
-            <div className='error-message'>{error}</div>
+      {showError && (
+        <div className={`overlay error-overlay ${error ? 'visible' : ''}`} onClick={() => setError('')}>
+          <div className={`error-message ${animateIn ? 'show' : 'hide'}`}>
+            {error}
           </div>
-        )}
+        </div>
+      )}
       </div>
       <img src={images[0]} alt="幻灯片1" id="show1" className={`${styles.sample} ${styles.fadeImg} ${fade[0] ? styles.fadeOut : ''}`} />
       <img src={images[1]} alt="幻灯片2" id="show2" className={`${styles.sample} ${styles.fadeImg} ${fade[1] ? styles.fadeOut : ''}`} />
