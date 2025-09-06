@@ -96,6 +96,7 @@
     font-weight: 400;
     font-size: 15px;
     margin-right: 9px;
+    z-index: 2;
 }
 
 .slideMain {
@@ -115,6 +116,8 @@
     background-repeat: no-repeat;
     background-position: center;
     background-size: cover;
+    position: relative;
+    overflow: hidden;
 }
 
 .elementBox {
@@ -172,4 +175,12 @@
 .gradientBox {
     display: flex;
     justify-content: space-between;
+}
+
+.resizeHandle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: gray;
+    border-radius: 50%;
 }

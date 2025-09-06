@@ -52,6 +52,19 @@ function isValidGradientDirection(value: string): boolean {
     return angleRegex.test(value) || keywordRegex.test(value);
 }
 
+function clampElementPosition(el: SlideElement, newX: number, newY: number, slideWidth: number, slideHeight: number, padding = 5) {
+    const elementWidth = el.size.width + padding * 2;
+    const elementHeight = el.size.height + padding * 2;
+    const minX = -(elementWidth - 10);
+    const maxX = slideWidth - 10;
+    const minY = -(elementHeight - 10);
+    const maxY = slideHeight - 10;
+    return {
+        x: Math.max(minX, Math.min(maxX, newX)),
+        y: Math.max(minY, Math.min(maxY, newY)),
+    };
+}
+
 type SlideElement =
 | {
     type: "text";
@@ -141,6 +154,19 @@ const PresentationPage: React.FC = () => {
     const [gradientDirection, setGradientDirection] = useState<string>("");
     const [gradientColor1, setGradientColor1] = useState<string>("#ff0000");
     const [gradientColor2, setGradientColor2] = useState<string>("#0000ff");
+    const [showTextModal, setShowTextModal] = useState(false);
+    const [textContent, setTextContent] = useState("");
+    const [textFontSize, setTextFontSize] = useState(16);
+    const [textFont, setTextFont] = useState<"Noto Sans SC" | "Noto Serif SC" | "LXGW WenKai">("Noto Sans SC");
+    const [textColor, setTextColor] = useState("#000000");
+    const [textWeight, setTextWeight] = useState<"regular" | "bold">("regular");
+    const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
+    const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+    const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+    const [elementStart, setElementStart] = useState<{ x: number; y: number } | null>(null);
+    const [resizingIndex, setResizingIndex] = useState<number | null>(null);
+    const [resizeDir, setResizeDir] = useState<string | null>(null);
+    const [resizeStartSize, setResizeStartSize] = useState<{ width: number; height: number } | null>(null);
 
     const fetchStore = useCallback(async (): Promise<StoreResponse | null> => {
         try {
@@ -207,6 +233,7 @@ const PresentationPage: React.FC = () => {
 
     useEffect(() => {
         void load();
+        setSelectedElementIndex(null);
     }, [load]);
 
     const persist = useCallback(
@@ -279,6 +306,8 @@ const PresentationPage: React.FC = () => {
 
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement;
+            if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
             if (sortedSlides.length === 0) return;
             if (e.key === "ArrowLeft") {
                 e.preventDefault();
@@ -449,6 +478,144 @@ const PresentationPage: React.FC = () => {
         return typeof val === "string" && val.startsWith("data:image/");
     };
 
+    const handleAddTextElement = () => {
+        if (!presentation || !textContent.trim()) return;
+        const currentSlide = presentation.slides[currentIndex];
+        if (!currentSlide) return;
+        const lineHeight = 1.5;
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        ctx.font = `${textWeight === "bold" ? "700" : "400"} ${textFontSize}px ${textFont}`;
+        const metrics = ctx.measureText(textContent);
+        const textWidth = metrics.width;
+        const width = textWidth;
+        const height = textFontSize * lineHeight;
+
+        const newElement: SlideElement = {
+            type: "text",
+            size: { width, height },
+            position: { x: 5, y: 5 },
+            properties: {
+                text: textContent,
+                fontSize: textFontSize,
+                color: textColor,
+                fontFamily: textFont,
+                fontWeight: textWeight,
+            },
+            layer: currentSlide.content.length + 1,
+        };
+
+        const updatedSlides = [...presentation.slides];
+        updatedSlides[currentIndex] = {
+            ...currentSlide,
+            content: [...currentSlide.content, newElement],
+        };
+
+        setPresentation({ ...presentation, slides: updatedSlides });
+        closeTextModal();
+        setSelectedElementIndex(currentSlide.content.length);
+        setDirty(true);
+    };
+
+    const closeTextModal = () => {
+        setShowTextModal(false);
+        setTextContent("");
+        setTextFontSize(16);
+        setTextFont("Noto Sans SC");
+        setTextColor("#000000");
+        setTextWeight("regular");
+    };
+
+    const handleResizeStart = (e: React.MouseEvent, idx: number, dir: string) => {
+        e.stopPropagation();
+        setResizingIndex(idx);
+        setResizeDir(dir);
+        setDragStart({ x: e.clientX, y: e.clientY });
+
+        const currentSlide = presentation!.slides[currentIndex];
+        const el = currentSlide.content[idx];
+        setElementStart({ x: el.position.x, y: el.position.y });
+        setResizeStartSize({ width: el.size.width, height: el.size.height });
+    };
+
+    const handleMouseDown = (e: React.MouseEvent, idx: number) => {
+        e.stopPropagation();
+        if (!presentation) return;
+        setDraggingIndex(idx);
+        setDragStart({ x: e.clientX, y: e.clientY });
+
+        const currentSlide = presentation.slides[currentIndex];
+        const el = currentSlide.content[idx];
+        setElementStart({ x: el.position.x, y: el.position.y });
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+        if (!presentation) return;
+        const updatedSlides = [...presentation.slides];
+        const currentSlide = updatedSlides[currentIndex];
+
+        if (draggingIndex !== null && dragStart && elementStart) {
+            const dx = e.clientX - dragStart.x;
+            const dy = e.clientY - dragStart.y;
+
+            const el = currentSlide.content[draggingIndex];
+            const newX = elementStart.x + dx;
+            const newY = elementStart.y + dy;
+
+            const { x, y } = clampElementPosition(el, newX, newY, 800, 450);
+            el.position = { x, y };
+        }
+
+        if (resizingIndex !== null && dragStart && elementStart && resizeDir && resizeStartSize) {
+            const dx = e.clientX - dragStart.x;
+            const dy = e.clientY - dragStart.y;
+
+            const el = currentSlide.content[resizingIndex];
+            let newWidth = resizeStartSize.width;
+            let newHeight = resizeStartSize.height;
+            let newX = elementStart.x;
+            let newY = elementStart.y;
+
+            if (resizeDir.includes("right")) newWidth = Math.max(7, resizeStartSize.width + dx);
+            if (resizeDir.includes("bottom")) newHeight = Math.max(7, resizeStartSize.height + dy);
+            if (resizeDir.includes("left")) {
+                newWidth = Math.max(7, resizeStartSize.width - dx);
+                newX = elementStart.x + dx;
+            }
+            if (resizeDir.includes("top")) {
+                newHeight = Math.max(7, resizeStartSize.height - dy);
+                newY = elementStart.y + dy;
+            }
+
+            el.size = { width: newWidth, height: newHeight };
+            el.position = { x: newX, y: newY };
+        }
+
+        const updated: Presentation = {...presentation, slides: updatedSlides,};
+        setPresentation(updated);
+        setDirty(true);
+        };
+
+    const handleMouseUp = () => {
+        setDraggingIndex(null);
+        setDragStart(null);
+        setElementStart(null);
+        setResizingIndex(null);
+        setResizeDir(null);
+        setResizeStartSize(null);
+    };
+
+    useEffect(() => {
+        window.addEventListener("mousemove", handleMouseMove);
+        window.addEventListener("mouseup", handleMouseUp);
+        return () => {
+            window.removeEventListener("mousemove", handleMouseMove);
+            window.removeEventListener("mouseup", handleMouseUp);
+        };
+    }, [handleMouseMove]);
+
     if (loading) return <div className="load">加载中...</div>;
     if (!presentation) return <div className="load">未找到演示文稿</div>;
 
@@ -501,9 +668,11 @@ const PresentationPage: React.FC = () => {
                     </div>
                     <div className={styles.menuItem}>添加
                         <div className={styles.submenu}>
-                            <div>文本内容</div>
+                            <div onClick={addSlide}>新幻灯片</div>
+                            <div onClick={() => setShowTextModal(true)}>文本内容</div>
                             <div>插入图片</div>
                             <div>添加视频</div>
+                            <div>新增代码</div>
                         </div>
                     </div>
                     <div className={styles.menuItem}>删除
@@ -527,7 +696,7 @@ const PresentationPage: React.FC = () => {
                     </div>
                 </div>
             </header>
-            <main ref={stageRef} onWheel={onStageWheel} className={styles.slideMain}>
+            <main ref={stageRef} onWheel={onStageWheel} className={styles.slideMain} onClick={() => setSelectedElementIndex(null)}>
                 {sortedSlides.length > 0 ? (
                     <div
                     className={
@@ -543,7 +712,49 @@ const PresentationPage: React.FC = () => {
                         : { backgroundImage: sortedSlides[currentIndex].background.value }
                     }
                     >
-                    {/* 渲染幻灯片内容 */}
+                    {sortedSlides[currentIndex].content.map((el, idx) => {
+                    if (el.type === "text") {
+                        return (
+                        <div
+                            key={idx}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedElementIndex(idx);
+                            }}
+                            onMouseDown={(e) => handleMouseDown(e, idx)}
+                            style={{
+                            position: "absolute",
+                            left: el.position.x,
+                            top: el.position.y,
+                            width: el.size.width,
+                            height: el.size.height,
+                            fontSize: `${el.properties.fontSize}px`,
+                            fontFamily: el.properties.fontFamily,
+                            fontWeight: el.properties.fontWeight === "bold" ? 700 : 400,
+                            color: el.properties.color,
+                            padding: "5px",
+                            whiteSpace: "nowmal",
+                            overflowWrap: "break-word",
+                            wordBreak: "break-word",
+                            border: selectedElementIndex === idx ? "1px dashed gray" : "none",
+                            zIndex: el.layer,
+                            cursor: draggingIndex === idx ? "grabbing" : "grab",
+                            }}
+                        >
+                            {el.properties.text}
+                            {selectedElementIndex === idx && (
+                                <>
+                                <div className={styles.resizeHandle} style={{ left: -3, top: -3, cursor: "nwse-resize" }} onMouseDown={(e) => handleResizeStart(e, idx, "top-left")} />
+                                <div className={styles.resizeHandle} style={{ right: -3, top: -3, cursor: "nesw-resize" }} onMouseDown={(e) => handleResizeStart(e, idx, "top-right")} />
+                                <div className={styles.resizeHandle} style={{ left: -3, bottom: -3, cursor: "nesw-resize" }} onMouseDown={(e) => handleResizeStart(e, idx, "bottom-left")} />
+                                <div className={styles.resizeHandle} style={{ right: -3, bottom: -3, cursor: "nwse-resize" }} onMouseDown={(e) => handleResizeStart(e, idx, "bottom-right")} />
+                                </>
+                            )}
+                        </div>
+                        );
+                    }
+                    return null;
+                    })}
                     </div>
                 ) : (
                     <button onClick={addSlide} className={styles.addFirstSlide} title="点击添加第一张幻灯片">点击添加第一张幻灯片</button>
@@ -625,6 +836,44 @@ const PresentationPage: React.FC = () => {
             <div className="buttons">
                 <button onClick={changeBg}>保存</button>
                 <button className="cancelBtn" onClick={() => setShowBgModal(false)}>取消</button>
+            </div>
+            </div>
+        </div>
+        )}
+        {showTextModal && (
+        <div className="overlay" onClick={closeTextModal}>
+            <div className="addform" onClick={(e) => e.stopPropagation()}>
+            <div className="presentationTitle">插入文本框</div>
+            <label>文字内容：</label>
+            <textarea
+                rows={3}
+                value={textContent}
+                onChange={(e) => setTextContent(e.target.value)}
+            />
+            <label>字体大小：</label>
+            <input
+                type="number"
+                value={textFontSize}
+                onChange={(e) => setTextFontSize(Number(e.target.value))}
+            />
+            <label>字体：</label>
+            <select value={textFont} onChange={(e) => setTextFont(e.target.value as any)}>
+                <option value="Noto Sans SC">Noto Sans SC</option>
+                <option value="Noto Serif SC">Noto Serif SC</option>
+                <option value="LXGW WenKai">LXGW WenKai</option>
+            </select>
+            <label>颜色：</label>
+            <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} />
+
+            <label>粗细：</label>
+            <select value={textWeight} onChange={(e) => setTextWeight(e.target.value as any)}>
+                <option value="regular">常规</option>
+                <option value="bold">加粗</option>
+            </select>
+
+            <div className="buttons">
+                <button onClick={handleAddTextElement}>确认</button>
+                <button className="cancelBtn" onClick={closeTextModal}>取消</button>
             </div>
             </div>
         </div>
