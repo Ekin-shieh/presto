@@ -54,57 +54,40 @@ const authed = (fn) => async (req, res) => {
   await fn(req, res, email);
 };
 
-app.post(
-  "/admin/auth/login",
-  catchErrors(async (req, res) => {
-    const { email, password } = req.body;
-    const token = await login(email, password);
-    return res.json({ token });
-  })
-);
+app.post("/admin/auth/login", catchErrors(async (req, res) => {
+  const { email, password } = req.body;
+  const token = await login(email, password);
+  return res.json({ token });
+}));
 
-app.post(
-  "/admin/auth/register",
-  catchErrors(async (req, res) => {
-    const { email, password, name } = req.body;
-    const token = await register(email, password, name);
-    return res.json({ token });
-  })
-);
+app.post("/admin/auth/register", catchErrors(async (req, res) => {
+  const { email, password, name } = req.body;
+  const token = await register(email, password, name);
+  return res.json({ token });
+}));
 
-app.post(
-  "/admin/auth/logout",
-  catchErrors(
-    authed(async (req, res, email) => {
-      await logout(email);
-      return res.json({});
-    })
-  )
-);
+app.post("/admin/auth/logout", catchErrors(authed(async (req, res, email) => {
+  await logout(email);
+  return res.json({});
+})));
 
-app.get(
-  "/store",
-  catchErrors(
-    authed(async (req, res, email) => {
-      const store = await getStore(email);
-      return res.json({ store });
-    })
-  )
-);
+app.get("/store", catchErrors(authed(async (req, res, email) => {
+  const store = await getStore(email);
+  return res.json({ store });
+})));
 
-app.put(
-  "/store",
-  catchErrors(
-    authed(async (req, res, email) => {
-      await setStore(email, req.body.store);
-      return res.json({});
-    })
-  )
-);
+app.put("/store", catchErrors(authed(async (req, res, email) => {
+  await setStore(email, req.body.store);
+  return res.json({});
+})));
 
 app.get("/", (req, res) => res.redirect("/docs"));
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-app.listen(port, () => {
-  console.log(`For API docs, navigate to http://localhost:${port}`);
-});
+if (process.env.NODE_ENV !== "production") {
+  app.listen(port, () => {
+    console.log(`For API docs, navigate to http://localhost:${port}`);
+  });
+}
+
+export default app;
