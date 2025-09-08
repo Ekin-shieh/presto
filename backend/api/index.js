@@ -5,6 +5,7 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import express from "express";
 import swaggerUi from "swagger-ui-express";
+import { getAbsoluteFSPath } from "swagger-ui-dist";
 
 import { AccessError, InputError } from "./error.js";
 import {
@@ -73,10 +74,10 @@ app.put("/store", catchErrors(authed(async (req, res, email) => {
   return res.json({});
 })));
 
+const swaggerPath = getAbsoluteFSPath();
+app.use("/docs", express.static(swaggerPath));
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(null, {
-  swaggerOptions: {
-    url: "/swagger.json"
-  }
+  swaggerOptions: { url: "/swagger.json" }
 }));
 
 app.get("/", (req, res) => res.redirect("/docs"));
