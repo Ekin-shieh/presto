@@ -76,8 +76,6 @@ app.put("/store", catchErrors(authed(async (req, res, email) => {
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-app.get("/", (req, res) => res.redirect("/docs"));
-
 if (process.env.NODE_ENV !== "production") {
   app.listen(port, () => {
     console.log(`For API docs, navigate to http://localhost:${port}`);
