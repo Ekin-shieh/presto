@@ -7,6 +7,22 @@ import express from "express";
 import swaggerUi from "swagger-ui-express";
 import { getAbsoluteFSPath } from "swagger-ui-dist";
 
+
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.get("/swagger.json", (req, res) => {
+  const swaggerPath = path.join(__dirname, "../public/swagger.json");
+  const file = fs.readFileSync(swaggerPath, "utf-8");
+  res.setHeader("Content-Type", "application/json");
+  res.send(file);
+});
+
+
 import { AccessError, InputError } from "./error.js";
 import {
   getEmailFromAuthorization,
