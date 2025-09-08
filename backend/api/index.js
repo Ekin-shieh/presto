@@ -10,16 +10,17 @@ import { getAbsoluteFSPath } from "swagger-ui-dist";
 
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 app.get("/swagger.json", (req, res) => {
-  const swaggerPath = path.join(__dirname, "../public/swagger.json");
-  const file = fs.readFileSync(swaggerPath, "utf-8");
-  res.setHeader("Content-Type", "application/json");
-  res.send(file);
+  try {
+    const swaggerPath = path.join(process.cwd(), "public", "swagger.json");
+    const file = fs.readFileSync(swaggerPath, "utf-8");
+    res.setHeader("Content-Type", "application/json");
+    res.send(file);
+  } catch (err) {
+    console.error("Failed to load swagger.json:", err);
+    res.status(500).send({ error: "Failed to load swagger.json" });
+  }
 });
 
 
