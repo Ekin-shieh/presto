@@ -7,23 +7,6 @@ import express from "express";
 import swaggerUi from "swagger-ui-express";
 import { getAbsoluteFSPath } from "swagger-ui-dist";
 
-
-import fs from "fs";
-import path from "path";
-
-app.get("/swagger.json", (req, res) => {
-  try {
-    const swaggerPath = path.join(process.cwd(), "public", "swagger.json");
-    const file = fs.readFileSync(swaggerPath, "utf-8");
-    res.setHeader("Content-Type", "application/json");
-    res.send(file);
-  } catch (err) {
-    console.error("Failed to load swagger.json:", err);
-    res.status(500).send({ error: "Failed to load swagger.json" });
-  }
-});
-
-
 import { AccessError, InputError } from "./error.js";
 import {
   getEmailFromAuthorization,
