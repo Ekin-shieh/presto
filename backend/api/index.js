@@ -5,9 +5,6 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import express from "express";
 import swaggerUi from "swagger-ui-express";
-import path from "path";
-import { fileURLToPath } from "url";
-import swaggerUiDist from "swagger-ui-dist";
 
 import { AccessError, InputError } from "./error.js";
 import {
@@ -19,11 +16,6 @@ import {
   setStore,
   connectDB,
 } from "./service.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-import swaggerDocument from "./swagger.json" assert { type: "json" };
 
 await connectDB();
 
@@ -81,9 +73,11 @@ app.put("/store", catchErrors(authed(async (req, res, email) => {
   return res.json({});
 })));
 
-const swaggerUiAssetPath = swaggerUiDist.getAbsoluteFSPath();
-app.use("/docs", express.static(swaggerUiAssetPath));
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(null, {
+  swaggerOptions: {
+    url: "/swagger.json"
+  }
+}));
 
 app.get("/", (req, res) => res.redirect("/docs"));
 
