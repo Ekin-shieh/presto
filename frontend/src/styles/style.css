@@ -1,0 +1,360 @@
+@font-face {
+  font-family: 'Noto Sans SC';
+  src: url('../fonts/NotoSansSC-Regular.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Noto Sans SC';
+  src: url('../fonts/NotoSansSC-Bold.ttf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Noto Serif SC';
+  src: url('../fonts/NotoSerifSC-Regular.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Noto Serif SC';
+  src: url('../fonts/NotoSerifSC-Bold.ttf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'LXGW WenKai';
+  src: url('../fonts/LXGWWenKai-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'LXGW WenKai';
+  src: url('../fonts/LXGWWenKai-Light.ttf') format('truetype');
+  font-weight: lighter;
+  font-style: normal;
+}
+
+body {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container {
+    min-width: 1440px;
+    width: 100vw;
+    min-height: 600px;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    font-family: 'LXGW WenKai';
+    position: relative;
+}
+
+.loginside {
+    height: 100%;
+    width: 400px;
+    background: linear-gradient(135deg, hsl(238, 40%, 52%), white);
+    background-size: 400% 400%;
+    animation: gradientAnimation 4s ease infinite;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.loginsheet {
+    height: 100%;
+    width: calc(100% - 400px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+@keyframes gradientAnimation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+input,
+select {
+    padding: 10px;
+    border-radius: 5px;
+    outline: none;
+    border: hsl(223, 19%, 93%) 1px solid;
+    resize: none;
+}
+
+input:focus {
+    border-color: hsl(238, 40%, 52%);
+}
+
+input::placeholder {
+    font-family: inherit;
+}
+
+button {
+    background-color: hsl(238, 40%, 52%);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-weight: 500;
+    font-family: inherit;
+}
+
+button:hover {
+    background-color: hsl(239, 57%, 85%);
+}
+
+button:active {
+    background-color: hsl(239, 57%, 60%);
+}
+
+.cancelBtn {
+    background-color: red;
+}
+
+.cancelBtn:hover {
+    background-color: pink;
+}
+
+.cancelBtn:active {
+    background-color: rgba(246, 3, 88, 0.5);
+}
+
+.link {
+    color: grey;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.link:focus {
+    color: black;
+    outline: none;
+}
+
+.link:active {
+    color: gray;
+}
+
+.load {
+    padding: 24px;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.overlay.visible {
+    pointer-events: auto;
+    opacity: 1;
+}
+
+.error-message {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    min-width: 200px;
+    max-width: 400px;
+    margin-top: 40px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transform: translateY(-120%);
+    opacity: 0;
+    transition: transform 0.4s ease, opacity 0.4s ease;
+}
+
+.error-message.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.error-message.hide {
+    transform: translateY(-120%);
+    opacity: 0;
+}
+
+.modal-overlay { z-index: 1000; }
+.error-overlay { z-index: 2000; }
+
+.gray {
+    color: #999;
+}
+
+#show1 {
+    left: 150px;
+    top: 50px;
+}
+
+#show2 {
+    left: 350px;
+    top: 280px;
+}
+
+#show3 {
+    left: 250px;
+    top: 510px
+}
+
+.addform {
+    background-color: white;
+    border-radius: 8px;
+    padding: 50px;
+    margin: 50px 0;
+    display: flex;
+    flex-direction: column;
+    font-size: 15px;
+    width: 320px;
+    height: 500px;
+    gap: 5px;
+    position: relative;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform: scale(0.8);
+    opacity: 0;
+
+    label {
+        margin-top: 5px;
+    }
+
+    textarea {
+        padding: 10px;
+        border-radius: 5px;
+        outline: none;
+        border: hsl(223, 19%, 93%) 1px solid;
+        resize: none;
+    }
+}
+
+.addform.show {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.addform.hide {
+    transform: scale(0.8);
+    opacity: 0;
+}
+
+.presentationTitle {
+    font-weight: 800;
+    font-size: 15px;
+}
+
+.thumbPreview {
+    width: 320px;
+    height: 180px;
+    overflow: hidden;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+}
+
+.buttons {
+    position: absolute;
+    bottom: 50px;
+    right: 50px;
+    display: flex;
+    gap: 10px;
+
+    button {
+        width: 100px;
+        height: 30px;
+    }
+}
+
+.radioGroup {
+    display: flex;
+    margin: 12px 0;
+    justify-content: space-around;
+}
+
+.colorPreview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.colorBox {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #ccc;
+}
+
+.text-element.selected {
+    border: 1px dashed gray;
+}
+
+.text-element.selected::before,
+.text-element.selected::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    background: gray;
+    border-radius: 50%;
+    position: absolute;
+}
+
+.confirm {
+    background-color: white;
+    border-radius: 8px;
+    flex-direction: column;
+    position: relative;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform: scale(0.8);
+    opacity: 0;
+    padding: 30px 50px 70px 50px;
+    min-width: 200px;
+    max-width: 500px;
+    margin-top: 40px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+    .buttons {
+        bottom: 10px;
+        right: 15px;
+        
+        button {
+            width: 80px;
+        }
+    }
+}
+
+.confirm.show {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.confirm.hide {
+    transform: scale(0.8);
+    opacity: 0;
+}
