@@ -5,14 +5,8 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import express from "express";
 import swaggerUi from "swagger-ui-express";
-import fs from "fs";
-import { fileURLToPath } from "url";
-import path from "path";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const swaggerPath = path.join(__dirname, "swagger.json");
-const swaggerDocument = JSON.parse(fs.readFileSync(swaggerPath, "utf-8"));
+import swaggerDocument from "../swagger.json" assert { type: "json" };
 
 import { AccessError, InputError } from "./error.js";
 import {
