@@ -2,7 +2,7 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "api/index.js",
+  "main": "index.js",
   "type": "module",
   "scripts": {
     "start": "node api/index.js",
@@ -27,6 +27,6 @@
     "supertest": "^6.3.3"
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   }
 }
