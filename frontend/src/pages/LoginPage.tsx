@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from '../styles/LoginPage.module.css';
-
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5005";
 import show1 from '../assets/show1.jpg';
 import show2 from '../assets/show2.jpg';
 import show3 from '../assets/show3.jpg';
@@ -88,7 +88,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ setIsAuthenticated }) => {
     e.preventDefault();
     setError('');
     try {
-      const response = await fetch('http://localhost:5005/admin/auth/login', {
+      const response = await fetch(`${API_BASE}/admin/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -112,7 +112,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ setIsAuthenticated }) => {
     }
     try {
       const { email, password, name } = newData;
-      const response = await fetch('http://localhost:5005/admin/auth/register', {
+      const response = await fetch(`${API_BASE}/admin/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name }),

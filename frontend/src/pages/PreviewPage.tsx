@@ -4,6 +4,7 @@ import styles from "../styles/PreviewPage.module.css";
 import { Button } from "@mui/material";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5005";
 
 type SlideElement = {
     type: "text" | "image" | "video" | "code";
@@ -51,7 +52,7 @@ useEffect(() => {
     const t = setTimeout(() => {
       setAnimatingIndex(currentIndex);
       setAnimate(false);
-    }, 300); // 动画时间 300ms
+    }, 300);
     return () => clearTimeout(t);
   }
 }, [currentIndex, presentation, animatingIndex]);
@@ -60,7 +61,7 @@ useEffect(() => {
     const fetchStore = useCallback(async (): Promise<StoreResponse | null> => {
         try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:5005/store", {
+        const res = await fetch(`${API_BASE}/store`, {
             method: "GET",
             headers: {
             "Content-Type": "application/json",

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import '../styles/style.css';
 import styles from '../styles/Dashboard.module.css';
 import { Button } from "@mui/material";
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5005";
 
 interface Slide {
   id: number;
@@ -64,7 +65,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5005/store', {
+      const response = await fetch(`${API_BASE}/store`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -110,7 +111,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
   const updateData = async (updatedPresentations: Presentation[]) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch('http://localhost:5005/store', {
+      await fetch(`${API_BASE}/store`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +129,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setIsAuthenticated }) => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5005/admin/auth/logout', {
+      const response = await fetch(`${API_BASE}/admin/auth/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

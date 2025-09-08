@@ -8,6 +8,7 @@ import {  SortableContext,  useSortable,  verticalListSortingStrategy } from "@d
 import { CSS } from "@dnd-kit/utilities";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { Slider, Checkbox, FormControlLabel, Button } from "@mui/material";
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5005";
 
 function SortableSlideItem({ slide, idx, currentIndex, gotoIndex,
     }: {
@@ -253,7 +254,7 @@ const PresentationPage: React.FC = () => {
         ): Promise<T | null> {
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch("http://localhost:5005/store", {
+            const res = await fetch(`${API_BASE}/store`, {
             method,
             headers: {
                 "Content-Type": "application/json",
