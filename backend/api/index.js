@@ -24,10 +24,12 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// 注意：这里必须是相对路径，并且 swagger.json 必须打包上传
 const swaggerPath = path.join(__dirname, "swagger.json");
 const swaggerDocument = JSON.parse(fs.readFileSync(swaggerPath, "utf-8"));
 // ===============================================================
 
+// 初始化数据库连接
 await connectDB();
 
 const port = process.env.PORT || 5005;
@@ -37,7 +39,7 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json({ limit: "50mb" }));
 
-// 错误捕捉
+// ====================== 错误捕捉 ======================
 const catchErrors = (fn) => async (req, res) => {
   try {
     await fn(req, res);
@@ -87,16 +89,17 @@ app.put("/store", catchErrors(authed(async (req, res, email) => {
   return res.json({});
 })));
 
-// Swagger Docs
+// ====================== Swagger Docs ======================
 app.get("/", (req, res) => res.redirect("/docs"));
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-// ===================================================
+// ===========================================================
 
-// Vercel 不要用 app.listen
+// Vercel 不要 app.listen
 if (process.env.NODE_ENV !== "production") {
   app.listen(port, () => {
     console.log(`For API docs, navigate to http://localhost:${port}`);
   });
 }
 
+// ✅ 核心：Vercel 需要 export 一个 handler
 export default app;
