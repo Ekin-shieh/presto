@@ -77,7 +77,7 @@ app.put("/store", catchErrors(authed(async (req, res, email) => {
 const swaggerPath = getAbsoluteFSPath();
 app.use("/docs", express.static(swaggerPath));
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(null, {
-  swaggerOptions: { url: "https://presto-backend-pearl.vercel.app/swagger.json" }
+  swaggerOptions: { url: "/swagger.json" }
 }));
 
 app.get("/", (req, res) => res.redirect("/docs"));
