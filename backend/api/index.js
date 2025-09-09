@@ -26,6 +26,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json({ limit: "50mb" }));
+app.use(express.static(path.join(__dirname, "public")));
 
 const catchErrors = (fn) => async (req, res) => {
   try {
