@@ -5,7 +5,7 @@ Presto 是一个轻量级在线演示文稿制作工具，灵感来源于 *slide
 
 ---
 
-本产品已经部署前端至[此网站](https://presto-blush.vercel.app/)，但因为后端出了问题，无法部署到vercel，想要查看完整效果需要下载frontend文件夹，并创建.env文件，定义以下内容：
+本产品已经部署前端至[此网站](https://presto-blush.vercel.app/)，但因为后端出了问题，无法部署到vercel，只能在本地运行，想要查看完整效果需要下载backend文件夹，并创建.env文件，定义以下内容：
 PORT = 5005
 MONGO_URL = 你的MONGO数据库
 JWT_SECRET = 你的JWT_SECRET
