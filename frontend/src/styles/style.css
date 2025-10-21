@@ -358,3 +358,7 @@ button:active {
     transform: scale(0.8);
     opacity: 0;
 }
+
+dialog {
+    border: 0;
+}

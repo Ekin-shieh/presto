@@ -4,7 +4,7 @@ import styles from "../styles/PreviewPage.module.css";
 import { Button } from "@mui/material";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5005";
+const API_BASE = "http://localhost:5005";
 
 type SlideElement = {
     type: "text" | "image" | "video" | "code";
@@ -42,20 +42,19 @@ const PreviewPage: React.FC = () => {
     const scale = 1.5;
     const scaledWidth = slideWidth * scale;
     const scaledHeight = slideHeight * scale;
+    const [animatingIndex, setAnimatingIndex] = useState(currentIndex);
+    const [animate, setAnimate] = useState(false);
 
-const [animatingIndex, setAnimatingIndex] = useState(currentIndex);
-const [animate, setAnimate] = useState(false);
-
-useEffect(() => {
-  if (presentation && currentIndex !== animatingIndex) {
-    setAnimate(true);
-    const t = setTimeout(() => {
-      setAnimatingIndex(currentIndex);
-      setAnimate(false);
-    }, 300);
-    return () => clearTimeout(t);
-  }
-}, [currentIndex, presentation, animatingIndex]);
+    useEffect(() => {
+        if (presentation && currentIndex !== animatingIndex) {
+            setAnimate(true);
+            const t = setTimeout(() => {
+            setAnimatingIndex(currentIndex);
+            setAnimate(false);
+            }, 300);
+            return () => clearTimeout(t);
+        }
+    }, [currentIndex, presentation, animatingIndex]);
 
 
     const fetchStore = useCallback(async (): Promise<StoreResponse | null> => {
@@ -343,7 +342,6 @@ useEffect(() => {
                 </div>
             </div>
         </main>
-
         </div>
     );
 };

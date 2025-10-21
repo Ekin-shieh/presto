@@ -8,7 +8,7 @@ import {  SortableContext,  useSortable,  verticalListSortingStrategy } from "@d
 import { CSS } from "@dnd-kit/utilities";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { Slider, Checkbox, FormControlLabel, Button } from "@mui/material";
-const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5005";
+const API_BASE = "http://localhost:5005";
 
 function SortableSlideItem({ slide, idx, currentIndex, gotoIndex,
     }: {
