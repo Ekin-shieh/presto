@@ -1,14 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { HexColorPicker } from "react-colorful";
 import '../styles/style.css';
 import styles from '../styles/PresentationPage.module.css';
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import {  SortableContext,  useSortable,  verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { DragEndEvent } from "@dnd-kit/core";
-import { Slider, Checkbox, FormControlLabel, Button } from "@mui/material";
 const API_BASE = "http://localhost:5005";
+import ErrorDialog from '../components/ErrorDialog';
+import ConfirmDialog from '../components/ConfirmDialog';
+import InfoModal from '../components/InfoModal';
+import BgModal from '../components/BgModal';
+import TextModal from '../components/TextModal';
+import VideoModal from '../components/VideoModal';
+import ExitConfirmModal from '../components/ExitConfirmModal';
+import ElementEditor from '../components/ElementEditor'
 
 function SortableSlideItem({ slide, idx, currentIndex, gotoIndex,
     }: {
@@ -163,7 +169,6 @@ const PresentationPage: React.FC = () => {
     const [tempName, setTempName] = useState("");
     const [tempDescription, setTempDescription] = useState("");
     const [tempThumbnail, setTempThumbnail] = useState<string | null>(null);
-    const [animateInfoModal, setAnimateInfoModal] = useState(false);
 
     //修改背景
     const [showBgModal, setShowBgModal] = useState(false);
@@ -172,7 +177,6 @@ const PresentationPage: React.FC = () => {
     const [gradientDirection, setGradientDirection] = useState<string>("");
     const [gradientColor1, setGradientColor1] = useState<string>("#ff0000");
     const [gradientColor2, setGradientColor2] = useState<string>("#0000ff");
-    const [animateBgModal, setAnimateBgModal] = useState(false);
 
     //文本框
     const [showTextModal, setShowTextModal] = useState(false);
@@ -183,7 +187,6 @@ const PresentationPage: React.FC = () => {
     const [textWeight, setTextWeight] = useState<"light" | "regular" | "bold">("regular");
     const [textStyle, setTextStyle] = useState<"normal" | "italic">("normal");
     const [textDecoration, setTextDecoration] = useState<"none" | "underline">("none");
-    const [animateTextModal, setAnimateTextModal] = useState(false);
 
     //修改元素
     const [selectedElementIndex, setSelectedElementIndex] = useState<number | null>(null);
@@ -196,35 +199,28 @@ const PresentationPage: React.FC = () => {
     
     //插入视频
     const [showVideoModal, setShowVideoModal] = useState(false);
-    const [animateVideoModal, setAnimateVideoModal] = useState(false);
     const [videoUrl, setVideoUrl] = useState("");
     const [videoAutoPlay, setVideoAutoPlay] = useState(false);
 
     //提示信息
     const [error, setError] = useState<string>('');
     const [showError, setShowError] = useState(false);
-    const [animateError, setAnimateError] = useState(false);
 
     //确认功能
     const [confirmMessage, setConfirmMessage] = useState<string>('');
     const [onConfirm, setOnConfirm] = useState<(() => void) | null>(null);
     const [showConfirm, setShowConfirm] = useState(false);
-    const [animateConfirm, setAnimateConfirm] = useState(false);
 
     //退出前确认
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const [exitAction, setExitAction] = useState<(() => void) | null>(null);
-    const [animateExitConfirm, setAnimateExitConfirm] = useState(false);
 
     //提示信息
     useEffect(() => {
     if (error) {
         setShowError(true);
-        setAnimateError(false);
-        requestAnimationFrame(() => setAnimateError(true));
     } else if (showError) {
-        setAnimateError(false);
-        const t = setTimeout(() => setShowError(false), 400);
+        const t = setTimeout(() => setShowError(false), 50);
         return () => clearTimeout(t);
     }
     }, [error]);
@@ -234,12 +230,9 @@ const PresentationPage: React.FC = () => {
         setConfirmMessage(message);
         setOnConfirm(() => onConfirmAction);
         setShowConfirm(true);
-        setAnimateConfirm(false);
-        requestAnimationFrame(() => setAnimateConfirm(true));
     };
 
     const closeConfirm = () => {
-        setAnimateConfirm(false);
         setTimeout(() => {
             setShowConfirm(false);
             setConfirmMessage('');
@@ -372,12 +365,9 @@ const PresentationPage: React.FC = () => {
     const openExitConfirm = (action: () => void) => {
         setExitAction(() => action);
         setShowExitConfirm(true);
-        setAnimateExitConfirm(false);
-        requestAnimationFrame(() => setAnimateExitConfirm(true));
     };
 
     const closeExitConfirm = () => {
-        setAnimateExitConfirm(false);
         setTimeout(() => setShowExitConfirm(false), 300);
         setExitAction(null);
     };
@@ -443,48 +433,10 @@ const PresentationPage: React.FC = () => {
         setTempDescription(presentation.description || "");
         setTempThumbnail(presentation.thumbnail || null);
         setShowInfoModal(true);
-        setAnimateInfoModal(false);
-        requestAnimationFrame(() => setAnimateInfoModal(true));
     };
 
     const closeInfoModal = () => {
-        setAnimateInfoModal(false);
         setTimeout(() => setShowInfoModal(false), 300);
-    };
-
-    async function compressImage(
-        file: File,
-        targetWidth: number,
-        targetHeight: number,
-        quality: number = 0.8
-        ): Promise<string> {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => {
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return reject("Canvas context not found");
-
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-            ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-            resolve(canvas.toDataURL("image/jpeg", quality));
-            };
-            img.onerror = reject;
-            img.src = URL.createObjectURL(file);
-        });
-        }
-
-    const handleTempThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        try {
-            const compressedBase64 = await compressImage(file, 160, 90);
-            setTempThumbnail(compressedBase64);
-        } catch (err) {
-            console.error("压缩缩略图失败:", err);
-        }
     };
 
     const handleInfoSave = async () => {
@@ -506,18 +458,6 @@ const PresentationPage: React.FC = () => {
     };
 
     //修改背景图
-    const handleBgImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        try {
-            const compressed = await compressImage(file, 800, 450);
-            setTempBgValue(compressed);
-        } catch (err) {
-            setError("压缩背景图失败");
-            console.error("压缩背景图失败:", err);
-        }
-    };
-
     const openBgModal = () => {
         if (!presentation) return;
         const currentBg = sortedSlides[currentIndex].background;
@@ -540,8 +480,6 @@ const PresentationPage: React.FC = () => {
             setGradientColor1("#ff0000");
             setGradientColor2("#0000ff");
         }
-        setAnimateBgModal(false);
-        requestAnimationFrame(() => setAnimateBgModal(true));
         setShowBgModal(true);
     };
 
@@ -575,7 +513,6 @@ const PresentationPage: React.FC = () => {
     };
 
     const closeBgModal = () => {
-        setAnimateBgModal(false);
         setTimeout(() => setShowBgModal(false), 300);
     };
 
@@ -615,8 +552,6 @@ const PresentationPage: React.FC = () => {
     //编辑和插入文本框信息
     const openTextModal = () => {
         setShowTextModal(true);
-        setAnimateTextModal(false);
-        requestAnimationFrame(() => setAnimateTextModal(true));
     };
 
     const handleAddTextElement = () => {
@@ -663,7 +598,6 @@ const PresentationPage: React.FC = () => {
     };
 
     const closeTextModal = () => {
-        setAnimateTextModal(false);
         setTimeout(() => {
             setShowTextModal(false);
             setTextContent("");
@@ -875,12 +809,9 @@ const PresentationPage: React.FC = () => {
     //插入和编辑视频元素
     const openVideoModal = () => {
         setShowVideoModal(true);
-        setAnimateVideoModal(false);
-        requestAnimationFrame(() => setAnimateVideoModal(true));
     };
 
     const closeVideoModal = () => {
-        setAnimateVideoModal(false);
         setTimeout(() => {
             setShowVideoModal(false);
             setVideoUrl("");
@@ -923,21 +854,6 @@ const PresentationPage: React.FC = () => {
     setSelectedElementIndex(currentSlide.content.length);
     setDirty(true);
     };
-
-    //位移元素层数组件
-    function LayerControls({ idx }: { idx: number }) {
-        return (
-            <>
-                <div className={styles.layerControls}>
-                    <Button onClick={() => updateElementLayer("up", idx)}>上移一层</Button>
-                    <Button onClick={() => updateElementLayer("down", idx)}>下移一层</Button>
-                    <Button onClick={() => updateElementLayer("top", idx)}>移至顶层</Button>
-                    <Button onClick={() => updateElementLayer("bottom", idx)}>移至底层</Button>
-                </div>
-                <button onClick={deleteSelectedElement}>删除该元素</button>
-            </>
-        );
-    }
 
     //更新元素
     const updateTextProperty = (
@@ -1211,362 +1127,99 @@ const PresentationPage: React.FC = () => {
                 )}
             </main>
         </div>
-        <div className={styles.elementBox}>
-        {selectedElementIndex !== null ? (
-            (() => {
-            const el = sortedSlides[currentIndex].content[selectedElementIndex];
-            if (el.type === "text") {
-                return (
-                    <div className={styles.elementForm}>
-                        <h3>编辑文本元素</h3>
-                        <label>文字内容</label>
-                        <textarea rows={3} value={el.properties.text} onChange={(e) => updateTextProperty(selectedElementIndex!, "text", e.target.value)} />
-                        <label>字号</label>
-                        <input type="number" value={el.properties.fontSize} onChange={(e) => updateTextProperty(selectedElementIndex!, "fontSize", Number(e.target.value))} />
-                        <label>字体</label>
-                        <select value={el.properties.fontFamily} onChange={(e) => updateTextProperty(selectedElementIndex!, "fontFamily", e.target.value as any)} >
-                            <option value="Noto Sans SC">Noto Sans SC</option>
-                            <option value="Noto Serif SC">Noto Serif SC</option>
-                            <option value="LXGW WenKai">LXGW WenKai</option>
-                        </select>
-                        <label>颜色</label>
-                        <input type="color" value={el.properties.color} onChange={(e) => updateTextProperty(selectedElementIndex!, "color", e.target.value)} />
-                        <label>字重</label>
-                        <select value={el.properties.fontWeight} onChange={(e) => updateTextProperty(selectedElementIndex!, "fontWeight", e.target.value as any)} >
-                            <option value="light">Light</option>
-                            <option value="regular">Regular</option>
-                            <option value="bold">Bold</option>
-                        </select>
-                        <label>
-                            <input type="checkbox" checked={el.properties.fontStyle === "italic"} onChange={(e) => updateTextProperty( selectedElementIndex!, "fontStyle", e.target.checked ? "italic" : "normal")} />斜体
-                        </label>
-                        <label>
-                            <input type="checkbox" checked={el.properties.textDecoration === "underline"} onChange={(e) => updateTextProperty( selectedElementIndex!, "textDecoration", e.target.checked ? "underline" : "none")} />下划线
-                        </label>
-                        <LayerControls idx={selectedElementIndex!} />
-                    </div>
-                );
-            }
-            if (el.type === "image") {
-            return (
-            <div className={styles.elementForm}>
-                <h3>编辑图片元素</h3>
-                <label>亮度</label>
-                <Slider
-                    value={el.properties.brightness}
-                    min={0}
-                    max={200}
-                    step={1}
-                    onChange={(_, value) =>
-                    updateImageProperty(selectedElementIndex!, "brightness", value as number)
-                    }
-                />
-                <label>对比度</label>
-                <Slider
-                    value={el.properties.contrast}
-                    min={0}
-                    max={200}
-                    step={1}
-                    onChange={(_, value) =>
-                    updateImageProperty(selectedElementIndex!, "contrast", value as number)
-                    }
-                />
-                <label>饱和度</label>
-                <Slider
-                    value={el.properties.saturation}
-                    min={0}
-                    max={200}
-                    step={1}
-                    onChange={(_, value) =>
-                    updateImageProperty(selectedElementIndex!, "saturation", value as number)
-                    }
-                />
-                <label>透明度</label>
-                <Slider
-                    value={el.properties.opacity}
-                    min={0}
-                    max={100}
-                    step={1}
-                    onChange={(_, value) =>
-                    updateImageProperty(selectedElementIndex!, "opacity", value as number)
-                    }
-                />
-                <label>旋转角度</label>
-                <Slider
-                    value={el.properties.rotation}
-                    min={-180}
-                    max={180}
-                    step={1}
-                    onChange={(_, value) =>
-                    updateImageProperty(selectedElementIndex!, "rotation", value as number)
-                    }
-                />
-                <FormControlLabel
-                    control={
-                    <Checkbox
-                        checked={el.properties.flipH}
-                        onChange={(e) =>
-                        updateImageProperty(selectedElementIndex!, "flipH", e.target.checked)
-                        }
-                    />
-                    }
-                    label="水平翻转"
-                />
-                <FormControlLabel
-                    control={
-                    <Checkbox
-                        checked={el.properties.flipV}
-                        onChange={(e) =>
-                        updateImageProperty(selectedElementIndex!, "flipV", e.target.checked)
-                        }
-                    />
-                    }
-                    label="垂直翻转"
-                />
-                <LayerControls idx={selectedElementIndex!} />
-            </div>
-            );
-            }
-            if (el.type === "video") {
-            return (
-            <div className={styles.elementForm}>
-                <h3>编辑视频元素</h3>
-                <label>视频 URL</label>
-                <textarea
-                rows={5}
-                defaultValue={el.properties.url}
-                onBlur={(e) => {
-                    const value = e.target.value.trim();
-                    if (!value) {
-                        setError("视频 URL 不能为空");
-                        return;
-                    }
-                    const isValidYoutubeEmbed = /^https:\/\/www\.youtube\.com\/embed\/[A-Za-z0-9_-]+/.test(value);
-                    if (!isValidYoutubeEmbed) {
-                        setError("请输入有效的 YouTube 嵌入视频 URL（例如：https://www.youtube.com/embed/...）");
-                        return;
-                    }
-                    const updatedSlides = [...presentation!.slides];
-                    updatedSlides[currentIndex].content[selectedElementIndex] = {
-                    ...el,
-                    properties: { ...el.properties, url: value },
-                    };
-                    setPresentation({ ...presentation!, slides: updatedSlides });
-                    setDirty(true);
-                }}
-                />
-                <label>
-                    <input
-                    type="checkbox"
-                    checked={el.properties.autoPlay}
-                    onChange={(e) => {
-                        const updatedSlides = [...presentation!.slides];
-                        updatedSlides[currentIndex].content[selectedElementIndex] = {
-                        ...el,
-                        properties: { ...el.properties, autoPlay: e.target.checked },
-                        };
-                        setPresentation({ ...presentation!, slides: updatedSlides });
-                        setDirty(true);
-                    }}
-                    />自动播放
-                </label>
-                <LayerControls idx={selectedElementIndex!} />
-            </div>
-            );
-            }
-            return <div>该类型元素暂不支持编辑</div>;
-            })()
-        ) : (
-            <div className="gray">当前无选中可编辑元素</div>
-        )}
-        </div>
-        {showInfoModal && (
-        <div className="overlay modal-overlay visible" onClick={closeInfoModal}>
-            <div className={`addform ${animateInfoModal ? "show" : "hide"}`} onClick={(e) => e.stopPropagation()}>
-                <div className='presentationTitle'>编辑文件信息</div>
-                <label>修改名称：</label>
-                <input type="text" value={tempName} onChange={(e) => setTempName(e.target.value)} placeholder="输入幻灯片名称" />
-                <label>修改描述：</label>
-                <textarea value={tempDescription} onChange={(e) => setTempDescription(e.target.value)} placeholder="输入描述" rows={3} />
-                <label>修改封面:</label>
-                <input type="file" accept="image/*" onChange={handleTempThumbnailChange} />
-                {tempThumbnail && (
-                    <div className='thumbPreview'>
-                    <img src={tempThumbnail} alt="封面预览" />
-                    </div>
-                )}
-                <div className='buttons'>
-                    <button onClick={handleInfoSave}>保存</button>
-                    <button className="cancelBtn" onClick={closeInfoModal}>取消</button>
-                </div>
-            </div>
-        </div>
-        )}
-        {showBgModal && (
-        <div className="overlay modal-overlay visible" onClick={closeBgModal}>
-            <div className={`addform ${animateBgModal ? "show" : "hide"}`} onClick={(e) => e.stopPropagation()}>
-            <div className="presentationTitle">编辑背景</div>
-            <div className="radioGroup">
-                <label>
-                    <input type="radio" checked={tempBgType === "color"} onChange={() => setTempBgType("color")}/>颜色
-                </label>
-                <label>
-                    <input type="radio" checked={tempBgType === "image"} onChange={() => setTempBgType("image")}/>图片
-                </label>
-                <label>
-                    <input type="radio" checked={tempBgType === "gradient"} onChange={() => setTempBgType("gradient")}/>渐变
-                </label>
-            </div>
-            {tempBgType === "color" && (
-                <div className="colorPreview">
-                    <div>当前选择颜色</div>
-                    <div className="colorBox" style={{ background: tempBgValue }} />
-                    <HexColorPicker color={tempBgValue} onChange={setTempBgValue} />
-                </div>
-            )}
-            {tempBgType === "image" && (
-                <>
-                <input type="file" accept="image/*" onChange={(e) => handleBgImageChange(e)}/>
-                {isBase64Image(tempBgValue) && tempBgValue && (
-                    <div className="thumbPreview">
-                    <img src={tempBgValue} alt="背景预览" />
-                    </div>
-                )}
-                </>
-            )}
-            {tempBgType === "gradient" && (
-            <>
-                <label>方向（角度）：
-                    <input type="text" value={gradientDirection} onChange={(e) => setGradientDirection(e.target.value)} placeholder="例如：90deg" style={{ width: "100px", marginLeft: "8px" }}/>
-                </label>
-                <div>当前渐变效果</div>
-                <div className="colorBox" style={{ background: `linear-gradient(${gradientDirection}, ${gradientColor1}, ${gradientColor2})` }} />
-                <div className={styles.gradientBox}>
-                    <label>颜色1
-                        <HexColorPicker color={gradientColor1} onChange={setGradientColor1} style={{ width: "150px", height: "150px" }} />
-                    </label>
-                    <label>颜色2
-                        <HexColorPicker color={gradientColor2} onChange={setGradientColor2} style={{ width: "150px", height: "150px" }} />
-                    </label>
-                </div>
-            </>
-            )}
-            <div className="buttons">
-                <button onClick={changeBg}>保存</button>
-                <button className="cancelBtn" onClick={closeBgModal}>取消</button>
-            </div>
-            </div>
-        </div>
-        )}
-        {showTextModal && (
-        <div className="overlay modal-overlay visible" onClick={closeTextModal}>
-            <div className={`addform ${animateTextModal ? "show" : "hide"}`} onClick={(e) => e.stopPropagation()}>
-            <div className="presentationTitle">插入文本框</div>
-            <label>文字内容</label>
-            <textarea rows={3} value={textContent} onChange={(e) => setTextContent(e.target.value)}/>
-            <label>字号</label>
-            <input type="number" value={textFontSize} onChange={(e) => setTextFontSize(Number(e.target.value))} />
-            <label>字体</label>
-            <select value={textFont} onChange={(e) => setTextFont(e.target.value as any)}>
-                <option value="Noto Sans SC">Noto Sans SC</option>
-                <option value="Noto Serif SC">Noto Serif SC</option>
-                <option value="LXGW WenKai">LXGW WenKai</option>
-            </select>
-            <label>颜色 
-                <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} />
-            </label>
-            <label>字重</label>
-            <select value={textWeight} onChange={(e) => setTextWeight(e.target.value as any)}>
-                <option value="light">Light</option>
-                <option value="regular">Regular</option>
-                <option value="bold">Bold</option>
-            </select>
-            <label>
-                <input
-                    type="checkbox"
-                    checked={textStyle === "italic"}
-                    onChange={(e) => setTextStyle(e.target.checked ? "italic" : "normal")}
-                />斜体
-            </label>
-            <label>
-                <input
-                    type="checkbox"
-                    checked={textDecoration === "underline"}
-                    onChange={(e) => setTextDecoration(e.target.checked ? "underline" : "none")}
-                />下划线
-            </label>
-            <div className="buttons">
-                <button onClick={handleAddTextElement}>确认</button>
-                <button className="cancelBtn" onClick={closeTextModal}>取消</button>
-            </div>
-            </div>
-        </div>
-        )}
-        {showVideoModal && (
-        <div className="overlay modal-overlay visible" onClick={closeVideoModal}>
-            <div className={`addform ${animateVideoModal ? "show" : "hide"}`} onClick={(e) => e.stopPropagation()}>
-            <div className="presentationTitle">插入视频</div>
-            <label>视频 URL（YouTube 嵌入链接）</label>
-            <input
-                type="text"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="例如：https://www.youtube.com/embed/xxxx"
-            />
-            <label>
-                <input
-                type="checkbox"
-                checked={videoAutoPlay}
-                onChange={(e) => setVideoAutoPlay(e.target.checked)}
-                />
-                自动播放
-            </label>
-            <div className="buttons">
-                <button onClick={handleAddVideoElement}>确认</button>
-                <button className="cancelBtn" onClick={closeVideoModal}>取消</button>
-            </div>
-            </div>
-        </div>
-        )}
-        {showError && (
-        <div className="overlay error-overlay visible" onClick={() => setError('')}>
-            <div className={`error-message ${animateError ? 'show' : 'hide'}`}>
-            {error}
-            </div>
-        </div>
-        )}
-        {showConfirm && (
-        <div className="overlay modal-overlay visible" onClick={closeConfirm}>
-            <div className={`confirm ${animateConfirm ? "show" : "hide"}`} onClick={(e) => e.stopPropagation()} >
-            <div>{confirmMessage}</div>
-            <div className="buttons">
-                <button onClick={() => { if (onConfirm) onConfirm(); closeConfirm();}}>确认</button>
-                <button className="cancelBtn" onClick={closeConfirm}>取消</button>
-            </div>
-            </div>
-        </div>
-        )}
-        {showExitConfirm && (
-        <div className="overlay modal-overlay visible" onClick={closeExitConfirm}>
-            <div className={`confirm  ${animateExitConfirm ? "show" : "hide"}`} onClick={(e) => e.stopPropagation()}>
-            <div>您有未保存的更改，是否保存后退出？</div>
-            <div className="buttons">
-                <button
-                onClick={async () => {
-                    await handleSave();
-                    if (exitAction) exitAction();
-                    closeExitConfirm();
-                }} >保存</button>
-                <button
-                onClick={() => {
-                    if (exitAction) exitAction();
-                    closeExitConfirm();
-                }} >不保存</button>
-                <button className="cancelBtn" onClick={closeExitConfirm}>取消</button>
-            </div>
-            </div>
-        </div>
-        )}
+        <ElementEditor
+            selectedElementIndex={selectedElementIndex}
+            sortedSlides={sortedSlides}
+            currentIndex={currentIndex}
+            presentation={presentation}
+            updateTextProperty={updateTextProperty}
+            updateImageProperty={updateImageProperty}
+            deleteSelectedElement={deleteSelectedElement}
+            updateElementLayer={updateElementLayer}
+            setError={setError}
+            setPresentation={setPresentation}
+            setDirty={setDirty}
+        />
+        <InfoModal
+            visible={showInfoModal}
+            name={tempName}
+            description={tempDescription}
+            thumbnail={tempThumbnail}
+            onNameChange={setTempName}
+            onDescChange={setTempDescription}
+            onThumbChange={setTempThumbnail}
+            onSave={handleInfoSave}
+            onClose={closeInfoModal}
+        />
+        <BgModal
+            visible={showBgModal}
+            bgType={tempBgType}
+            bgValue={tempBgValue}
+            gradientDirection={gradientDirection}
+            gradientColor1={gradientColor1}
+            gradientColor2={gradientColor2}
+            onTypeChange={setTempBgType}
+            onValueChange={setTempBgValue}
+            onGradientDirChange={setGradientDirection}
+            onGradientColor1Change={setGradientColor1}
+            onGradientColor2Change={setGradientColor2}
+            onSave={changeBg}
+            onClose={closeBgModal}
+        />
+        <TextModal
+            visible={showTextModal}
+            text={textContent}
+            fontSize={textFontSize}
+            font={textFont}
+            color={textColor}
+            weight={textWeight}
+            style={textStyle}
+            decoration={textDecoration}
+            onChange={(fields) => {
+                if (fields.text) setTextContent(fields.text);
+                if (fields.fontSize) setTextFontSize(fields.fontSize);
+                if (fields.font) setTextFont(fields.font as any);
+                if (fields.color) setTextColor(fields.color);
+                if (fields.weight) setTextWeight(fields.weight as any);
+                if (fields.style) setTextStyle(fields.style as any);
+                if (fields.decoration) setTextDecoration(fields.decoration as any);
+            }}
+            onConfirm={handleAddTextElement}
+            onClose={closeTextModal}
+        />
+        <VideoModal
+            visible={showVideoModal}
+            url={videoUrl}
+            autoPlay={videoAutoPlay}
+            onUrlChange={setVideoUrl}
+            onAutoPlayChange={setVideoAutoPlay}
+            onConfirm={handleAddVideoElement}
+            onClose={closeVideoModal}
+        />
+        <ErrorDialog
+                message={error}
+                visible={showError}
+                onClose={() => setError('')}
+        />
+        <ConfirmDialog
+            message={confirmMessage}
+            visible={showConfirm}
+            onConfirm={() => { if (onConfirm) onConfirm(); }}
+            onClose={closeConfirm}
+        />
+        <ExitConfirmModal
+            visible={showExitConfirm}
+            onSaveAndExit={async () => {
+                await handleSave();
+                if (exitAction) exitAction();
+                closeExitConfirm();
+            }}
+            onExitWithoutSave={() => {
+                if (exitAction) exitAction();
+                closeExitConfirm();
+            }}
+            onClose={closeExitConfirm}
+        />
     </div>
     );
 };

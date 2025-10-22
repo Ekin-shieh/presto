@@ -28,6 +28,10 @@
     height: 675px;
 }
 
+.noSlide {
+    margin: 0 auto;
+}
+
 .slideWrapper {
     position: relative;
     width: 1200px;

@@ -5,6 +5,9 @@ import { Button } from "@mui/material";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 const API_BASE = "http://localhost:5005";
+import { logout } from "../api/auth";
+import SlideRenderer from "../components/SlideRenderer";
+import { createRoot } from "react-dom/client";
 
 type SlideElement = {
     type: "text" | "image" | "video" | "code";
@@ -40,10 +43,9 @@ const PreviewPage: React.FC = () => {
     const slideWidth = 800;
     const slideHeight = 450;
     const scale = 1.5;
-    const scaledWidth = slideWidth * scale;
-    const scaledHeight = slideHeight * scale;
     const [animatingIndex, setAnimatingIndex] = useState(currentIndex);
     const [animate, setAnimate] = useState(false);
+    const [wheelLocked, setWheelLocked] = useState(false);
 
     useEffect(() => {
         if (presentation && currentIndex !== animatingIndex) {
@@ -112,18 +114,23 @@ const PreviewPage: React.FC = () => {
         return () => window.removeEventListener("keydown", onKey);
     }, [presentation, currentIndex]);
 
-    const logout = () => {
-        localStorage.removeItem("token");
+    const handleLogout = async () => {
+        await logout();
         navigate("/");
     };
 
     const onStageWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-        if (!presentation || presentation.slides.length === 0) return;
+        if (wheelLocked || !presentation || presentation.slides.length === 0) return;
+
+        setWheelLocked(true);
+
         if (e.deltaY > 0) {
-        gotoIndex(currentIndex + 1);
+            gotoIndex(currentIndex + 1);
         } else if (e.deltaY < 0) {
-        gotoIndex(currentIndex - 1);
+            gotoIndex(currentIndex - 1);
         }
+
+        setTimeout(() => setWheelLocked(false), 400);
     };
 
     const exportToPDF = async () => {
@@ -133,215 +140,77 @@ const PreviewPage: React.FC = () => {
             unit: "pt",
             format: [slideWidth, slideHeight],
         });
-        for (let i = 0; i < presentation.slides.length; i++) {
-        const slide = presentation.slides[i];
-        const slideEl = document.createElement("div");
-        slideEl.style.width = `${slideWidth}px`;
-        slideEl.style.height = `${slideHeight}px`;
-        slideEl.style.position = "absolute";
-        slideEl.style.left = "-99999px";
-        slideEl.style.top = "0";
-        slideEl.style.background =
-            slide.background.type === "color"
-            ? slide.background.value
-            : slide.background.type === "image"
-            ? `url(${slide.background.value}) center/cover no-repeat`
-            : slide.background.value;
-        document.body.appendChild(slideEl);
-        slide.content.forEach((el) => {
-            if (el.type === "text") {
-            const textDiv = document.createElement("div");
-            textDiv.innerText = el.properties.text;
-            Object.assign(textDiv.style, {
-                position: "absolute",
-                left: `${el.position.x}px`,
-                top: `${el.position.y}px`,
-                width: `${el.size.width}px`,
-                height: `${el.size.height}px`,
-                fontSize: `${el.properties.fontSize}px`,
-                fontFamily: el.properties.fontFamily,
-                fontWeight:
-                el.properties.fontWeight === "bold"
-                    ? "700"
-                    : el.properties.fontWeight === "light"
-                    ? "300"
-                    : "400",
-                fontStyle: el.properties.fontStyle,
-                textDecoration: el.properties.textDecoration,
-                color: el.properties.color,
-                padding: "5px",
-                whiteSpace: "normal",
-                overflowWrap: "break-word",
-                wordBreak: "break-word",
-            });
-            slideEl.appendChild(textDiv);
-            }
-            if (el.type === "image") {
-            const img = document.createElement("img");
-            img.src = el.properties.url;
-            img.style.position = "absolute";
-            img.style.left = `${el.position.x}px`;
-            img.style.top = `${el.position.y}px`;
-            img.style.width = `${el.size.width}px`;
-            img.style.height = `${el.size.height}px`;
-            img.style.objectFit = "contain";
-            slideEl.appendChild(img);
-            }
-            if (el.type === "video") {
-            const videoBox = document.createElement("div");
-            videoBox.innerText = "[视频]";
-            Object.assign(videoBox.style, {
-                position: "absolute",
-                left: `${el.position.x}px`,
-                top: `${el.position.y}px`,
-                width: `${el.size.width}px`,
-                height: `${el.size.height}px`,
-                border: "1px solid #000",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-            });
-            slideEl.appendChild(videoBox);
-            }
-        });
 
-        const canvas = await html2canvas(slideEl, {
+        const container = document.createElement("div");
+        container.style.position = "absolute";
+        container.style.left = "-99999px";
+        document.body.appendChild(container);
+
+        const root = createRoot(container);
+
+        for (let i = 0; i < presentation.slides.length; i++) {
+            root.render(
+            <SlideRenderer
+                slide={presentation.slides[i]}
+                width={slideWidth}
+                height={slideHeight}
+                mode="export"
+            />
+            );
+
+            await new Promise((r) => setTimeout(r, 100));
+
+            const canvas = await html2canvas(container.firstChild as HTMLElement, {
             backgroundColor: null,
             scale: 2,
-        });
-        const imgData = canvas.toDataURL("image/png");
-        if (i > 0) pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, 0, slideWidth, slideHeight);
+            });
 
-        document.body.removeChild(slideEl);
+            const imgData = canvas.toDataURL("image/png");
+            if (i > 0) pdf.addPage();
+            pdf.addImage(imgData, "PNG", 0, 0, slideWidth, slideHeight);
         }
+
+        root.unmount();
+        document.body.removeChild(container);
         pdf.save(`${presentation.name || "presentation"}.pdf`);
     };
 
     if (!presentation) return <div className="load">加载中...</div>;
     const slide = presentation.slides[currentIndex];
-    if (!slide) return <div>没有幻灯片</div>;
-
-    const slideCenterX = slideWidth / 2;
-    const slideCenterY = slideHeight / 2;
-    const scaledCenterX = scaledWidth / 2;
-    const scaledCenterY = scaledHeight / 2;
+    if (!slide) return (
+        <div className='container'>
+            <header className={styles.previewAside}>
+                <h2>{presentation.name}</h2>
+                <Button onClick={() => navigate(`/presentation/${presentation.id}`)}>返回编辑</Button>
+                <Button onClick={handleLogout}>退出登录</Button>
+            </header>
+            <main className={styles.noSlide}>
+                没有幻灯片
+            </main>
+        </div>
+    );
 
     return (
         <div className={`container ${styles.container}`} onWheel={onStageWheel}>
-        <header className={styles.previewAside}>
-            <h2>{presentation.name}</h2>
-            <Button onClick={() => navigate(`/presentation/${presentation.id}`)}>返回编辑</Button>
-            <Button onClick={exportToPDF}>导出 PDF</Button>
-            <Button onClick={logout}>退出登录</Button>
-        </header>
-        <main className={styles.previewSlide}>
-            <div className={styles.slideWrapper}>
-                <div
-                className={`${styles.slideContent} ${animate ? styles.fadeOut : ""}`}
-                style={
-                    slide.background.type === "color"
-                    ? { backgroundColor: presentation.slides[animatingIndex].background.value }
-                    : slide.background.type === "image"
-                    ? {
-                        backgroundImage: `url(${presentation.slides[animatingIndex].background.value})`,
-                        backgroundSize: "cover",
-                        backgroundRepeat: "no-repeat",
-                        backgroundPosition: "center",
-                        }
-                    : {
-                        backgroundImage: presentation.slides[animatingIndex].background.value,
-                        backgroundRepeat: "no-repeat",
-                        backgroundPosition: "center",
-                        }
-                }
-                >
-                {presentation.slides[animatingIndex].content.map((el, idx) => {
-                const centerX = el.position.x + el.size.width / 2;
-                const centerY = el.position.y + el.size.height / 2;
-                const offsetX = (centerX - slideCenterX) * scale;
-                const offsetY = (centerY - slideCenterY) * scale;
-                const scaledX =
-                    scaledCenterX + offsetX - (el.size.width * scale) / 2;
-                const scaledY =
-                    scaledCenterY + offsetY - (el.size.height * scale) / 2;
-
-                if (el.type === "text") {
-                    return (
-                    <div
-                        key={idx}
-                        style={{
-                        position: "absolute",
-                        left: scaledX,
-                        top: scaledY,
-                        width: el.size.width * scale,
-                        height: el.size.height * scale,
-                        fontSize: `${el.properties.fontSize * scale}px`,
-                        fontFamily: el.properties.fontFamily,
-                        fontWeight:
-                            el.properties.fontWeight === "bold"
-                            ? 700
-                            : el.properties.fontWeight === "light"
-                            ? 300
-                            : 400,
-                        fontStyle: el.properties.fontStyle,
-                        textDecoration: el.properties.textDecoration,
-                        color: el.properties.color,
-                        padding: `${5 * scale}px`,
-                        whiteSpace: "normal",
-                        overflowWrap: "break-word",
-                        wordBreak: "break-word",
-                        zIndex: el.layer,
-                        }}
-                    >
-                        {el.properties.text}
+            <header className={styles.previewAside}>
+                <h2>{presentation.name}</h2>
+                <Button onClick={() => navigate(`/presentation/${presentation.id}`)}>返回编辑</Button>
+                <Button onClick={exportToPDF}>导出 PDF</Button>
+                <Button onClick={handleLogout}>退出登录</Button>
+            </header>
+            <main className={styles.previewSlide}>
+                <div className={styles.slideWrapper}>
+                    <div className={`${styles.slideContent} ${animate ? styles.fadeOut : ""}`}>
+                    <SlideRenderer
+                        slide={presentation.slides[animatingIndex]}
+                        width={slideWidth}
+                        height={slideHeight}
+                        scale={scale}
+                        mode="display"
+                    />
                     </div>
-                    );
-                }
-                if (el.type === "image") {
-                    return (
-                    <img
-                        key={idx}
-                        src={el.properties.url}
-                        alt={el.properties.description || "image"}
-                        style={{
-                        position: "absolute",
-                        left: scaledX,
-                        top: scaledY,
-                        width: el.size.width * scale,
-                        height: el.size.height * scale,
-                        objectFit: "contain",
-                        zIndex: el.layer,
-                        }}
-                    />
-                    );
-                }
-                if (el.type === "video") {
-                    return (
-                    <iframe
-                        key={idx}
-                        src={`${el.properties.url}${
-                        el.properties.autoPlay ? "?autoplay=1&mute=1" : ""
-                        }`}
-                        style={{
-                        position: "absolute",
-                        left: scaledX,
-                        top: scaledY,
-                        width: el.size.width * scale,
-                        height: el.size.height * scale,
-                        border: "none",
-                        zIndex: el.layer,
-                        }}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                    />
-                    );
-                }
-                return null;
-                })}
                 </div>
-            </div>
-        </main>
+            </main>
         </div>
     );
 };
